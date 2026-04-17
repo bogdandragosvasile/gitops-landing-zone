@@ -321,8 +321,10 @@ spec:
 # --- 30. Allow Prometheus egress to scrape all namespaces
 #         Prometheus initiates connections outbound; the target namespace
 #         policies (allow-prometheus-scrape) permit the ingress side.
-#         This egress policy allows Prometheus to reach any pod on
-#         common metrics ports across all namespaces.
+#         Two rules:
+#         (a) pod IPs via namespaceSelector — covers regular pods
+#         (b) node IPs via ipBlock — covers kubelet (10250), node-exporter
+#             (9100, hostNetwork), CoreDNS (9153), and the k3d pod CIDR
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -335,6 +337,7 @@ spec:
   policyTypes:
     - Egress
   egress:
+    # (a) Pod-to-pod scraping across all namespaces
     - to:
         - namespaceSelector: {}
       ports:
@@ -362,6 +365,27 @@ spec:
           protocol: TCP
         - port: 9000
           protocol: TCP
+        - port: 10250
+          protocol: TCP
+        - port: 9153
+          protocol: TCP
+    # (b) Host-network targets: kubelet (10250), node-exporter (9100),
+    #     CoreDNS (9153) running on k3d node IPs (172.20.0.0/24)
+    #     and pod CIDR (10.42.0.0/16) for host-network pods
+    - to:
+        - ipBlock:
+            cidr: 172.20.0.0/24
+        - ipBlock:
+            cidr: 10.42.0.0/16
+      ports:
+        - port: 9100
+          protocol: TCP
+        - port: 10250
+          protocol: TCP
+        - port: 9153
+          protocol: TCP
+        - port: 9153
+          protocol: UDP
 
 ---
 
