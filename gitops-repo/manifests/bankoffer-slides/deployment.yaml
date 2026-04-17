@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bankoffer-slides
+  namespace: bankoffer-slides
+  labels:
+    app: bankoffer-slides
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bankoffer-slides
+  template:
+    metadata:
+      labels:
+        app: bankoffer-slides
+    spec:
+      containers:
+        - name: bankoffer-slides
+          image: bankoffer-slides:dev
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bankoffer-slides
+  namespace: bankoffer-slides
+spec:
+  selector:
+    app: bankoffer-slides
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bankoffer-slides
+  namespace: bankoffer-slides
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bankoffer-slides.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bankoffer-slides
+                port:
+                  number: 80
