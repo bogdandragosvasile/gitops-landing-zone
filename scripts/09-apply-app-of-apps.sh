@@ -6,6 +6,26 @@ APPS_DIR="$PROJECT_ROOT/gitops-repo/apps"
 
 log_info "Applying root app-of-apps Application..."
 
+# Pre-apply the ArgoCD egress NetworkPolicy BEFORE the root app syncs.
+# Without this, local-ingress applies a DNS-only egress restriction that
+# blocks the repo-server from fetching external Helm charts (port 443) and
+# reaching Gitea (port 3000). Once local-ingress syncs this is superseded
+# by the managed version, but it must exist first.
+log_info "Pre-applying ArgoCD egress NetworkPolicy to allow Helm chart downloads..."
+kubectl apply -n argocd -f - <<'NETPOL'
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-argocd-egress
+  namespace: argocd
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - {}
+NETPOL
+
 envsubst < "$APPS_DIR/root-app.yaml" | kubectl apply -f -
 
 log_ok "Root Application applied"

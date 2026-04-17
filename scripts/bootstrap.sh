@@ -31,6 +31,7 @@ run_step "06-install-argocd.sh"      "Bootstrap ArgoCD"
 run_step "07-push-gitops-repo.sh"    "Push gitops-infra repo to Gitea"
 run_step "08-configure-argocd-repo.sh" "Register Gitea repo in ArgoCD"
 run_step "09-apply-app-of-apps.sh"   "Activate app-of-apps"
+run_step "09b-build-portal.sh"       "Build + import landing portal image"
 run_step "10-configure-oidc.sh"      "Configure Keycloak OIDC SSO"
 
 echo ""

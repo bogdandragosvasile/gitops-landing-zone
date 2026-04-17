@@ -95,6 +95,27 @@ spec:
         - port: 53
           protocol: TCP
 
+---
+
+# --- 5b. ArgoCD egress — allow all outbound.
+#         ArgoCD is the control plane for GitOps and must reach:
+#         repo-server gRPC (8081), Redis (6379), kube-apiserver (6443),
+#         Gitea (3000), external Helm repos (443), Keycloak OIDC (8080).
+#         Restricting ArgoCD's egress offers little security benefit while
+#         causing hard-to-debug breakage; deny-all-ingress on other
+#         namespaces is where the security boundary is enforced.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-argocd-egress
+  namespace: argocd
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - {}
+
 # =============================================================================
 # KEYCLOAK NAMESPACE
 # =============================================================================
