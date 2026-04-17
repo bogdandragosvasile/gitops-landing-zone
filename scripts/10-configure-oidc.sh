@@ -94,26 +94,58 @@ curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application
   && log_ok "ArgoCD client created" \
   || log_warn "ArgoCD client may already exist"
 
-# ---- Add 'groups' scope to both clients ----
-log_info "Adding 'groups' scope to OIDC clients..."
+# ---- Create 'groups' scope and add to both clients ----
+log_info "Setting up 'groups' scope for OIDC clients..."
 TOKEN=$(get_kc_token)
-GROUPS_ID=$(curl -sf -H "Authorization: Bearer $TOKEN" \
-  "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/client-scopes" \
-  | grep -o '"id":"[^"]*","name":"groups"' | head -1 | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
 
-GITEA_UUID=$(curl -sf -H "Authorization: Bearer $TOKEN" \
-  "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${OIDC_GITEA_CLIENT_ID}" \
-  | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+# Use python3 for reliable JSON parsing (grep-based parsing is fragile)
+kc_json() { curl -sf -H "Authorization: Bearer $TOKEN" "$@"; }
 
-ARGOCD_UUID=$(curl -sf -H "Authorization: Bearer $TOKEN" \
-  "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${OIDC_ARGOCD_CLIENT_ID}" \
-  | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+# Create groups scope if it doesn't exist (Keycloak 26 doesn't create it by default)
+GROUPS_ID=$(kc_json "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/client-scopes" \
+  | python3 -c "import sys,json; scopes=json.load(sys.stdin); \
+    match=[s['id'] for s in scopes if s['name']=='groups']; \
+    print(match[0] if match else '')" 2>/dev/null || true)
+
+if [[ -z "$GROUPS_ID" ]]; then
+  GROUPS_CREATE=$(curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/client-scopes" \
+    -d '{
+      "name": "groups",
+      "description": "User group memberships",
+      "protocol": "openid-connect",
+      "attributes": {"include.in.token.scope": "true", "display.on.consent.screen": "true"},
+      "protocolMappers": [{
+        "name": "groups",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-group-membership-mapper",
+        "config": {
+          "claim.name": "groups",
+          "full.path": "false",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "userinfo.token.claim": "true"
+        }
+      }]
+    }' -w "%{http_code}" -o /dev/null 2>/dev/null || true)
+  TOKEN=$(get_kc_token)
+  GROUPS_ID=$(kc_json "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/client-scopes" \
+    | python3 -c "import sys,json; scopes=json.load(sys.stdin); \
+      match=[s['id'] for s in scopes if s['name']=='groups']; \
+      print(match[0] if match else '')" 2>/dev/null || true)
+fi
+
+GITEA_UUID=$(kc_json "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${OIDC_GITEA_CLIENT_ID}" \
+  | python3 -c "import sys,json; c=json.load(sys.stdin); print(c[0]['id'] if c else '')" 2>/dev/null || true)
+
+ARGOCD_UUID=$(kc_json "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients?clientId=${OIDC_ARGOCD_CLIENT_ID}" \
+  | python3 -c "import sys,json; c=json.load(sys.stdin); print(c[0]['id'] if c else '')" 2>/dev/null || true)
 
 if [[ -n "$GROUPS_ID" && -n "$GITEA_UUID" && -n "$ARGOCD_UUID" ]]; then
-  curl -sf -X PUT -H "Authorization: Bearer $TOKEN" \
-    "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients/$GITEA_UUID/optional-client-scopes/$GROUPS_ID" 2>/dev/null
-  curl -sf -X PUT -H "Authorization: Bearer $TOKEN" \
-    "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients/$ARGOCD_UUID/optional-client-scopes/$GROUPS_ID" 2>/dev/null
+  curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
+    "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients/$GITEA_UUID/optional-client-scopes/$GROUPS_ID" 2>/dev/null || true
+  curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
+    "http://${KEYCLOAK_HOST}/admin/realms/${KEYCLOAK_REALM}/clients/$ARGOCD_UUID/optional-client-scopes/$GROUPS_ID" 2>/dev/null || true
   log_ok "Groups scope added to both clients"
 else
   log_warn "Could not add groups scope (IDs: groups=$GROUPS_ID gitea=$GITEA_UUID argocd=$ARGOCD_UUID)"
@@ -140,19 +172,20 @@ log_info "Configuring Gitea OIDC provider..."
 
 # Remove any existing keycloak provider (idempotent)
 EXISTING_ID=$(docker exec --user git gitea gitea admin auth list 2>/dev/null \
-  | grep -i keycloak | awk '{print $1}')
+  | grep -i keycloak | awk '{print $1}' || true)
 if [[ -n "$EXISTING_ID" ]]; then
   docker exec --user git gitea gitea admin auth delete --id "$EXISTING_ID" 2>/dev/null || true
 fi
 
 # Add fresh provider (do NOT include 'openid' in scopes - Gitea adds it automatically)
+# Note: --skip-local-2fa is a boolean flag (no =true)
 docker exec --user git gitea gitea admin auth add-oauth \
   --name "keycloak" \
   --provider "openidConnect" \
   --key "${OIDC_GITEA_CLIENT_ID}" \
   --secret "${OIDC_GITEA_CLIENT_SECRET}" \
   --auto-discover-url "http://${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration" \
-  --skip-local-2fa=true 2>/dev/null \
+  --skip-local-2fa \
   && log_ok "Gitea OIDC provider configured" \
   || log_warn "Failed to add Gitea OIDC provider"
 

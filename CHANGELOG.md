@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - dnsmasq container fails to start on Ubuntu/Debian because `systemd-resolved` already holds port 53 — resolved by the Linux compose override
+- `KUBECONFIG` env var inherited as literal string `${KUBECONFIG:-$HOME/.kube/config}` from shell profile poisoned all kubectl/helm calls — fixed by `unset KUBECONFIG` at the top of `common.sh`
+- `04-create-k3d-cluster.sh`: replaced `kubectl config use-context` with `k3d kubeconfig merge --kubeconfig-merge-default --kubeconfig-switch-context` so the cluster context is always correctly written to `~/.kube/config`
+- `05-install-metallb.sh`: increased helm `--wait` timeout from 120 s to 300 s (WSL Docker image pulls are slower than Windows Docker Desktop)
+- `08-configure-argocd-repo.sh`: added `kubectl rollout restart deployment argocd-repo-server` after creating the Gitea credential secret — prevents the repo-server from caching an "authentication required" error
+- `09-apply-app-of-apps.sh`: pre-applies the `allow-argocd-egress: {}` NetworkPolicy before the root ArgoCD app is synced, breaking the chicken-and-egg where the DNS-only egress policy blocked Helm chart downloads and kube-apiserver access required to deploy the policies themselves; also adds a wait-loop + hard-refresh if the root app stays `Unknown`
+- `09b-build-portal.sh` (new): builds `landing-portal:latest` as `--platform linux/amd64` and imports it into all k3d nodes via `docker cp + ctr images import` tarball — multi-arch images fail `ctr import` directly; `imagePullPolicy: Never` requires the image to be pre-imported
+- NetworkPolicy `allow-argocd-egress: {}` added to `gitops-repo/manifests/local-ingress/network-policies.yaml` — ArgoCD is the GitOps control plane and needs unrestricted egress
+- NetworkPolicy `allow-keycloak-postgres`: `default-deny-ingress` in the keycloak namespace was blocking Keycloak from reaching its own postgres on port 5432
+- NetworkPolicy `allow-traefik-ingress` and `allow-argocd-oidc` in keycloak namespace: pod selector fixed from `app.kubernetes.io/name: keycloak` to `app.kubernetes.io/name: keycloakx` (codecentric Helm chart label)
+- `gitops-repo/manifests/keycloak/values.yaml`: admin password env var renamed from `KEYCLOAK_ADMIN_PASSWORD` to `KC_BOOTSTRAP_ADMIN_PASSWORD` (Keycloak 26.x deprecation); placeholder changed from `CHANGE_ME_from_env` to `${KEYCLOAK_ADMIN_PASSWORD}` so `envsubst` in phase 07 substitutes the actual credential from `.env`
+- `gitops-repo/manifests/keycloak-postgres/secret.yaml`: password placeholder changed from `CHANGE_ME_from_env` to `${KEYCLOAK_DB_PASSWORD}` so `envsubst` substitutes the actual credential
+- `10-configure-oidc.sh`: Keycloak 26.x does not create a `groups` client scope by default — script now creates it explicitly via the Admin API with a `oidc-group-membership-mapper`; switched from fragile `grep`-based JSON field extraction to `python3 -c` parsing; fixed `grep` no-match exit code killing the script under `set -eo pipefail` by adding `|| true`; fixed `--skip-local-2fa=true` → `--skip-local-2fa` (boolean flag syntax for Gitea CLI)
 
 ---
 

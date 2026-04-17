@@ -16,8 +16,8 @@ command:
 extraEnv: |
   - name: KEYCLOAK_ADMIN
     value: admin
-  - name: KEYCLOAK_ADMIN_PASSWORD
-    value: CHANGE_ME_from_env
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: "${KEYCLOAK_ADMIN_PASSWORD}"
   - name: KC_DB
     value: postgres
   - name: KC_DB_URL
@@ -25,7 +25,7 @@ extraEnv: |
   - name: KC_DB_USERNAME
     value: keycloak
   - name: KC_DB_PASSWORD
-    value: CHANGE_ME_from_env
+    value: "${KEYCLOAK_DB_PASSWORD}"
   - name: KC_PROXY_HEADERS
     value: xforwarded
   - name: KC_HTTP_ENABLED
