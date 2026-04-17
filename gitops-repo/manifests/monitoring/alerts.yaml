@@ -1,0 +1,161 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: landing-zone-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: pod-health
+      rules:
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total[5m]) * 60 * 5 > 0
+            and
+            kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+            description: >-
+              Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }}
+              is in CrashLoopBackOff. Restart rate: {{ printf "%.2f" $value }} restarts/5m.
+
+        - alert: PodNotReady
+          expr: |
+            kube_pod_status_ready{condition="true"} == 0
+            unless on(pod, namespace)
+            kube_pod_status_phase{phase=~"Succeeded|Completed"}
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is not ready"
+            description: >-
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-ready state
+              for more than 5 minutes.
+
+        - alert: ContainerOOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} was OOM killed"
+            description: >-
+              Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }}
+              was terminated due to out-of-memory. Consider increasing memory limits.
+
+        - alert: DeploymentReplicaMismatch
+          expr: |
+            (
+              kube_deployment_spec_replicas
+              != kube_deployment_status_replicas_available
+            )
+            and
+            (
+              changes(kube_deployment_status_replicas_updated[10m]) == 0
+            )
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replica mismatch"
+            description: >-
+              Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has {{ $value }}
+              available replicas but spec requires
+              {{ with printf "kube_deployment_spec_replicas{namespace='%s',deployment='%s'}" $labels.namespace $labels.deployment | query }}{{ . | first | value }}{{ end }}.
+
+    - name: node-health
+      rules:
+        - alert: NodeNotReady
+          expr: kube_node_status_condition{condition="Ready", status="true"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} is not ready"
+            description: >-
+              Node {{ $labels.node }} has been in a NotReady state for more than 2 minutes.
+              This may indicate a kubelet crash or network partition.
+
+        - alert: NodeDiskPressure
+          expr: kube_node_status_condition{condition="DiskPressure", status="true"} == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }} has disk pressure"
+            description: >-
+              Node {{ $labels.node }} is reporting DiskPressure. Pods may be evicted.
+              Free up disk space on this node.
+
+        - alert: NodeMemoryPressure
+          expr: kube_node_status_condition{condition="MemoryPressure", status="true"} == 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }} has memory pressure"
+            description: >-
+              Node {{ $labels.node }} is reporting MemoryPressure. Pods may be evicted.
+              Consider reducing workload or adding memory.
+
+    - name: argocd
+      rules:
+        - alert: ArgoCDAppOutOfSync
+          expr: |
+            argocd_app_info{sync_status="OutOfSync"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ArgoCD application {{ $labels.name }} is out of sync"
+            description: >-
+              ArgoCD application {{ $labels.name }} in project {{ $labels.project }} has been
+              OutOfSync for more than 10 minutes. Run `argocd app sync {{ $labels.name }}` to reconcile.
+
+        - alert: ArgoCDAppDegraded
+          expr: |
+            argocd_app_info{health_status="Degraded"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ArgoCD application {{ $labels.name }} is degraded"
+            description: >-
+              ArgoCD application {{ $labels.name }} in project {{ $labels.project }} has health
+              status Degraded for more than 5 minutes. Check the ArgoCD UI for details.
+
+    - name: service-health
+      rules:
+        - alert: HighPodRestartRate
+          expr: |
+            increase(kube_pod_container_status_restarts_total[15m]) > 3
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High restart rate for {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: >-
+              Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }}
+              has restarted {{ printf "%.0f" $value }} times in the last 15 minutes.
+
+        - alert: PodCPUThrottling
+          expr: |
+            (
+              rate(container_cpu_cfs_throttled_seconds_total[5m])
+              / rate(container_cpu_cfs_periods_total[5m])
+            ) > 0.75
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is heavily CPU throttled"
+            description: >-
+              Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }}
+              is being CPU throttled {{ printf "%.0f" (mul $value 100) }}% of the time.
+              Consider increasing the CPU limit or optimising the workload.

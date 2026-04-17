@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitOps Landing Zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --bg: #0D1B2A;
+  --fg: #F1FAEE;
+  --fg-muted: rgba(241,250,238,0.5);
+  --fg-faint: rgba(241,250,238,0.3);
+  --card-border: rgba(241,250,238,0.15);
+  --card-bg: rgba(241,250,238,0.03);
+  --card-hover-bg: rgba(244,211,94,0.05);
+  --creds-border: rgba(241,250,238,0.1);
+  --cf-red: #E63946;
+  --cf-blue: #1D3557;
+  --cf-blue-mid: #457B9D;
+  --cf-yellow: #F4D35E;
+  --cf-white: #F1FAEE;
+  --cf-black: #0D1B2A;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #F1FAEE;
+  --fg: #0D1B2A;
+  --fg-muted: rgba(13,27,42,0.55);
+  --fg-faint: rgba(13,27,42,0.3);
+  --card-border: rgba(13,27,42,0.2);
+  --card-bg: rgba(13,27,42,0.03);
+  --card-hover-bg: rgba(29,53,87,0.06);
+  --creds-border: rgba(13,27,42,0.12);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  transition: background 0.3s, color 0.3s;
+}
+.topbar {
+  background: var(--cf-blue);
+  border-bottom: 4px solid var(--cf-red);
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.topbar-content { text-align: center; }
+.topbar h1 {
+  font-weight: 900;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cf-white);
+}
+.topbar h1 span { color: var(--cf-yellow); }
+.topbar p {
+  font-size: 0.78rem;
+  color: rgba(241,250,238,0.6);
+  margin-top: 0.3rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.theme-toggle {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 2px solid rgba(241,250,238,0.3);
+  color: var(--cf-white);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.theme-toggle:hover { border-color: var(--cf-yellow); background: rgba(244,211,94,0.15); }
+.container { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+.notice {
+  border: 2px solid var(--cf-yellow);
+  background: rgba(244,211,94,0.1);
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  font-size: 0.88rem;
+}
+.notice strong { color: var(--cf-red); }
+.notice a { color: var(--cf-blue-mid); }
+.section-title {
+  font-weight: 900;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--cf-red);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--cf-red);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+.card {
+  border: 2px solid var(--card-border);
+  background: var(--card-bg);
+  padding: 1.25rem;
+  text-decoration: none;
+  color: var(--fg);
+  display: block;
+  transition: border-color 0.15s, background 0.15s;
+}
+.card:hover { border-color: var(--cf-yellow); background: var(--card-hover-bg); }
+.card-label {
+  font-weight: 900;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.card-label .dot { width: 8px; height: 8px; display: inline-block; }
+.dot-blue { background: var(--cf-blue-mid); }
+.dot-green { background: #2A9D8F; }
+.card-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.35rem; }
+.card-url {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--cf-blue-mid);
+}
+.card-desc { font-size: 0.78rem; color: var(--fg-muted); margin-top: 0.4rem; line-height: 1.4; }
+.card-creds {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--cf-yellow);
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--creds-border);
+}
+[data-theme="light"] .card-creds { color: var(--cf-blue); }
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+  border-top: 2px solid var(--card-border);
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-content">
+    <h1>GitOps <span>Landing Zone</span></h1>
+    <p>Local Development Environment &middot; k3d + ArgoCD + Gitea + Keycloak</p>
+  </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light theme">
+    <span class="icon" id="themeIcon">&#9790;</span>
+    <span id="themeLabel">Light</span>
+  </button>
+</header>
+
+<main class="container">
+
+  <div class="notice">
+    <strong>Base platform.</strong> This is the foundation. Deploy your own applications as ArgoCD Applications pointing to your Git repos. See the README for how to extend.
+  </div>
+
+  <div class="section-title">Platform Services</div>
+  <div class="grid">
+    <a class="card" href="http://argocd.local">
+      <div class="card-label"><span class="dot dot-blue"></span>GITOPS</div>
+      <div class="card-name">ArgoCD</div>
+      <div class="card-url">argocd.local</div>
+      <div class="card-desc">GitOps controller &middot; app-of-apps</div>
+      <div class="card-creds">admin / see .env</div>
+    </a>
+    <a class="card" href="http://gitea.local:3000">
+      <div class="card-label"><span class="dot dot-blue"></span>GIT + REGISTRY</div>
+      <div class="card-name">Gitea</div>
+      <div class="card-url">gitea.local:3000</div>
+      <div class="card-desc">Git server + container registry + CI</div>
+      <div class="card-creds">gitea_admin / see .env</div>
+    </a>
+    <a class="card" href="http://keycloak.local">
+      <div class="card-label"><span class="dot dot-blue"></span>SSO / OIDC</div>
+      <div class="card-name">Keycloak</div>
+      <div class="card-url">keycloak.local</div>
+      <div class="card-desc">Identity provider for Gitea + ArgoCD</div>
+      <div class="card-creds">admin / see .env</div>
+    </a>
+    <a class="card" href="https://localhost:8443">
+      <div class="card-label"><span class="dot dot-blue"></span>SECRETS</div>
+      <div class="card-name">Vaultwarden</div>
+      <div class="card-url">localhost:8443</div>
+      <div class="card-desc">Password manager &middot; Bitwarden-compatible</div>
+      <div class="card-creds">your master password</div>
+    </a>
+    <a class="card" href="http://grafana.local">
+      <div class="card-label"><span class="dot dot-green"></span>OBSERVABILITY</div>
+      <div class="card-name">Grafana</div>
+      <div class="card-url">grafana.local</div>
+      <div class="card-desc">Dashboards &middot; Prometheus + Loki</div>
+      <div class="card-creds">admin / see .env</div>
+    </a>
+    <a class="card" href="http://prometheus.local">
+      <div class="card-label"><span class="dot dot-green"></span>METRICS</div>
+      <div class="card-name">Prometheus</div>
+      <div class="card-url">prometheus.local</div>
+      <div class="card-desc">Time-series metrics &middot; K8s + app</div>
+    </a>
+  </div>
+
+  <div class="section-title">AI Agent Federation</div>
+  <div class="grid">
+    <a class="card" href="federation.html">
+      <div class="card-label"><span class="dot dot-green"></span>AGENTS</div>
+      <div class="card-name">Agent Federation</div>
+      <div class="card-url">.claude/agents/ &middot; 6 agents &middot; 12 skills</div>
+      <div class="card-desc">Depth-2 hierarchy, parallel execution, team-state coordination</div>
+    </a>
+  </div>
+
+</main>
+
+<footer class="footer">
+  GitOps Landing Zone &middot; k3d + ArgoCD + Gitea + Keycloak + Vaultwarden &middot; 100% reproducible from Git
+</footer>
+
+<script>
+(function() {
+  var html = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var icon = document.getElementById('themeIcon');
+  var label = document.getElementById('themeLabel');
+  var stored = localStorage.getItem('portal-theme');
+  if (stored) html.setAttribute('data-theme', stored);
+  function update() {
+    var dark = html.getAttribute('data-theme') !== 'light';
+    icon.textContent = dark ? '\u263E' : '\u2600';
+    label.textContent = dark ? 'Light' : 'Dark';
+  }
+  update();
+  btn.addEventListener('click', function() {
+    var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('portal-theme', next);
+    update();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kubectl *)",
+      "Bash(helm *)",
+      "Bash(k3d *)",
+      "Bash(docker *)",
+      "Bash(docker-compose *)",
+      "Bash(argocd *)",
+      "Bash(curl *)",
+      "Bash(openssl *)",
+      "Bash(kubeseal *)",
+      "Bash(bw *)",
+      "Bash(kustomize *)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(diff *)",
+      "Bash(bash *)",
+      "Bash(source *)",
+      "Bash(echo *)",
+      "Bash(sleep *)",
+      "Bash(MSYS_NO_PATHCONV*)",
+      "Bash(export *)",
+      "Bash(find *)",
+      "Bash(powershell*)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Agent"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(kubectl delete namespace kube-system)",
+      "Bash(k3d cluster delete *)"
+    ]
+  },
+  "env": {
+    "KUBECONFIG": "${KUBECONFIG:-$HOME/.kube/config}",
+    "GITOPS_REPO": "${AI_LOCAL_DEV:-$HOME/gitops-landing-zone}/gitops-repo",
+    "AI_LOCAL_DEV": "${AI_LOCAL_DEV:-$HOME/gitops-landing-zone}",
+    "GITEA_URL": "http://gitea.local:3000",
+    "ARGOCD_SERVER": "argocd.local",
+    "GRAFANA_URL": "http://grafana.local",
+    "KEYCLOAK_URL": "http://keycloak.local",
+    "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WRITE $CLAUDE_FILE_PATH\" >> ${AI_LOCAL_DEV:-$HOME/gitops-landing-zone}/.claude/audit.log 2>/dev/null || true'"
+          }
+        ]
+      }
+    ]
+  }
+}

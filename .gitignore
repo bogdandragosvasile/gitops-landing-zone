@@ -1,0 +1,51 @@
+# ============================================================
+# CRITICAL: prevent secrets from being committed
+# ============================================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# TLS certificates
+docker-compose/certs/
+
+# Database backups (may contain PII)
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# Runtime state
+.claude/team-state.json
+.claude/audit.log
+.claude/plans/
+.claude/todos/
+.claude/projects/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Build artifacts
+node_modules/
+dist/
+build/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Kubeconfig overrides
+kubeconfig
+*.kubeconfig
+
+# Helm
+charts/*.tgz

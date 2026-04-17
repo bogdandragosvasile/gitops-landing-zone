@@ -1,0 +1,52 @@
+## ArgoCD Helm values for local GitOps environment
+## Chart: argo/argo-cd v7.7.16
+
+global:
+  domain: argocd.local
+
+server:
+  extraArgs:
+    - --insecure
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - argocd.local
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+
+  config:
+    url: http://argocd.local
+    application.instanceLabelKey: argocd.argoproj.io/instance
+    admin.enabled: "true"
+
+  rbacConfig:
+    policy.default: role:readonly
+    policy.csv: |
+      g, admin, role:admin
+
+configs:
+  params:
+    server.insecure: true
+  cm:
+    url: http://argocd.local
+    admin.enabled: "true"
+  repositories:
+    gitea-gitops-infra:
+      url: http://gitea:3000/platform/gitops-infra.git
+      name: gitops-infra
+      type: git
+      username: gitea_admin
+      password: CHANGE_ME_from_env
+
+controller:
+  replicas: 1
+
+repoServer:
+  replicas: 1
+
+redis:
+  enabled: true
+
+notifications:
+  enabled: false

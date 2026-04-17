@@ -1,0 +1,224 @@
+# .gitleaks.toml — Gitleaks v8 configuration for GitOps Landing Zone
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+#
+# Strategy:
+#   - Use the built-in default ruleset as a base (via extend)
+#   - Override allowlists for known-safe demo values
+#   - Add project-specific rules for connection strings and k8s secrets
+#   - Exclude binary artifacts, generated files, and dependency trees
+
+title = "GitOps Landing Zone — Gitleaks Config"
+
+# Extend the upstream default ruleset so we inherit AWS/GCP/GitHub/etc. rules
+# without having to redefine them here.
+[extend]
+useDefault = true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Global allowlist
+# Applied to every rule — matches on commit, file path, regex, or stopwords.
+# ──────────────────────────────────────────────────────────────────────────────
+[allowlist]
+description = "Global GitOps Landing Zone allowlist"
+
+# Commits that are explicitly OK (add SHAs here after review)
+commits = []
+
+# File paths that are entirely exempt
+# .env.example is a template with placeholder values, not real secrets.
+paths = [
+  '''.env\.example$''',
+  '''\.env\.example$''',
+  '''docker-compose/certs/.*\.(pem|crt|key)$''',   # self-signed TLS certs — not production secrets
+]
+
+# Literal strings that, if present anywhere in the match, suppress the finding.
+# Keep this list minimal and documented.
+stopwords = [
+  "Test1234!",                          # intentional demo password, documented in CLAUDE.md
+  "CHANGE_ME",                          # explicit placeholder sentinel in templates
+  "REPLACE_ME",                         # explicit placeholder sentinel in templates
+  "YOUR_TOKEN_HERE",                    # template variable
+  "YOUR_API_KEY_HERE",                  # template variable
+  "YOUR_PASSWORD_HERE",                 # template variable
+  "<YOUR_",                             # generic template marker
+  "example.com",                        # documentation examples
+  "localhost",                          # local-only, non-routable
+  "vaultwarden-admin-token-placeholder",# documented Vaultwarden bootstrap placeholder
+  "changeit",                           # Java keystore default — not a real secret
+  "changeme",                           # common placeholder
+]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Path-level ignores (binary artifacts, generated output, dependency trees)
+# These paths are excluded from ALL scanning.
+# ──────────────────────────────────────────────────────────────────────────────
+[[allowlist.regexes]]
+description = "node_modules directory"
+regex = '''node_modules/'''
+
+[[allowlist.regexes]]
+description = "dist / build output directories"
+regex = '''(^|/)(dist|build|\.next|__pycache__|\.pytest_cache)/'''
+
+[[allowlist.regexes]]
+description = "Binary file extensions"
+regex = '''\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|tgz|rar|7z|bin|exe|dll|so|dylib|class|jar|war|ear)$'''
+
+[[allowlist.regexes]]
+description = "Minified JS/CSS files"
+regex = '''\.(min\.js|min\.css)$'''
+
+[[allowlist.regexes]]
+description = "Lock files (package-lock, yarn.lock, pnpm-lock, go.sum)"
+regex = '''(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|go\.sum|Pipfile\.lock|poetry\.lock)$'''
+
+[[allowlist.regexes]]
+description = "Helm chart .helmignore and Chart.lock"
+regex = '''(\.helmignore|Chart\.lock)$'''
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Project-specific rules
+# These supplement (not replace) the default ruleset.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Rule: Kubernetes Secret manifest with base64 data
+[[rules]]
+id          = "k8s-secret-plaintext"
+description = "Kubernetes Secret manifest with plaintext data (should be SealedSecret)"
+regex       = '''(?i)kind:\s*Secret[\s\S]{0,500}data:\s*\n(\s+\w+:\s+[A-Za-z0-9+/]{20,}={0,2}\s*\n)+'''
+tags        = ["kubernetes", "secret", "plaintext"]
+severity    = "critical"
+
+  [rules.allowlist]
+  description = "Allow SealedSecret data blocks and example manifests"
+  regexes = [
+    '''kind:\s*SealedSecret''',           # SealedSecret data is ciphertext — safe
+    '''# example''',                      # inline example comments
+    '''# docs''',
+  ]
+  paths = [
+    '''test/''',
+    '''tests/''',
+    '''testdata/''',
+    '''e2e/''',
+    '''docs/''',
+  ]
+
+# Rule: Docker Compose env_file or environment block with real secrets
+[[rules]]
+id          = "docker-compose-secret"
+description = "Docker Compose environment block with hardcoded secret value"
+regex       = '''(?i)(POSTGRES_PASSWORD|MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD|REDIS_PASSWORD|RABBITMQ_DEFAULT_PASS|SECRET_KEY|DJANGO_SECRET_KEY|FLASK_SECRET_KEY|ADMIN_PASSWORD)\s*[:=]\s*[^\$\{][^\s'"]{8,}'''
+tags        = ["docker-compose", "secret"]
+severity    = "high"
+
+  [rules.allowlist]
+  description = "Allow template variables and demo values"
+  regexes = [
+    '''\$\{[A-Z_]+\}''',          # ${VAR} substitution — value comes from .env
+    '''\$[A-Z_]+''',              # $VAR substitution
+    '''Test1234!''',              # demo password
+    '''CHANGE_ME''',
+    '''REPLACE_ME''',
+  ]
+  paths = [
+    '''\.env\.example$''',
+    '''docker-compose\.example\.yml$''',
+  ]
+
+# Rule: ArgoCD / Kubernetes generic password fields
+[[rules]]
+id          = "k8s-manifest-password-field"
+description = "Kubernetes manifest with a literal password field (not a SecretKeyRef)"
+regex       = '''(?i)password:\s*["']?[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':",.<>?/\\|`~]{10,}["']?'''
+tags        = ["kubernetes", "password"]
+severity    = "high"
+
+  [rules.allowlist]
+  description = "Allow secretKeyRef, configMapKeyRef, and template variables"
+  regexes = [
+    '''secretKeyRef''',
+    '''configMapKeyRef''',
+    '''\$\(''',                   # Kubernetes $(VAR) substitution
+    '''\{\{''',                   # Helm template {{ .Values.* }}
+    '''valueFrom:''',
+    '''Test1234!''',              # demo password
+    '''CHANGE_ME''',
+    '''REPLACE_ME''',
+  ]
+
+# Rule: Helm values.yaml with plaintext password
+[[rules]]
+id          = "helm-values-password"
+description = "Helm values.yaml with a plaintext password (use SealedSecret or .env)"
+regex       = '''(?i)(password|passwd|secret|token|apiKey|api_key)\s*:\s*["']?[A-Za-z0-9!@#$%^&*()_+\-=]{10,}["']?'''
+tags        = ["helm", "values", "secret"]
+severity    = "high"
+
+  [rules.allowlist]
+  description = "Allow Helm template references and common placeholders"
+  regexes = [
+    '''\{\{''',                   # Helm template
+    '''\$\{''',                   # shell/docker variable substitution
+    '''secretKeyRef''',
+    '''existingSecret''',         # common Bitnami pattern
+    '''Test1234!''',
+    '''CHANGE_ME''',
+    '''REPLACE_ME''',
+    '''""''',                     # empty value
+    "''",                         # empty value
+  ]
+  paths = [
+    '''\.values\.example\.yaml$''',
+    '''test/''',
+    '''tests/''',
+  ]
+
+# Rule: Private key material (belt-and-suspenders over default ruleset)
+[[rules]]
+id          = "private-key-header"
+description = "PEM private key header found in a tracked file"
+regex       = '''-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY( BLOCK)?-----'''
+tags        = ["pki", "private-key"]
+severity    = "critical"
+
+  [rules.allowlist]
+  description = "Allow self-signed dev certs under docker-compose/certs"
+  paths = [
+    '''docker-compose/certs/''',
+  ]
+
+# Rule: Connection strings with embedded credentials
+[[rules]]
+id          = "connection-string-credentials"
+description = "Database or message-broker connection string with embedded username:password"
+regex       = '''(?i)(mongodb(\+srv)?|postgresql|postgres|mysql|mariadb|redis|amqp|amqps|rabbitmq)://[^:@\s]+:[^@\s]{6,}@[^\s"']+'''
+tags        = ["connection-string", "credentials"]
+severity    = "critical"
+
+  [rules.allowlist]
+  description = "Allow localhost dev connection strings with placeholder passwords"
+  regexes = [
+    '''://[a-z]+:CHANGE_ME@''',
+    '''://[a-z]+:REPLACE_ME@''',
+    '''://[a-z]+:\$\{''',         # ${VAR} substitution
+    '''://[a-z]+:\$[A-Z_]+@''',   # $VAR substitution
+    '''localhost''',              # localhost — not reachable externally
+    '''127\.0\.0\.1''',
+  ]
+
+# Rule: Gitleaks / CI config that itself disables secret scanning
+[[rules]]
+id          = "secret-scanning-disabled"
+description = "Code that disables secret scanning (noqa, gitleaks:allow without comment)"
+regex       = '''gitleaks:allow\s*$'''
+tags        = ["meta", "bypass"]
+severity    = "medium"
+
+  [rules.allowlist]
+  description = "Allow gitleaks:allow only when followed by an explanation comment"
+  regexes = [
+    '''gitleaks:allow\s+#''',     # has inline comment explaining why
+    '''gitleaks:allow\s+//''',    # JS/Go style comment
+  ]

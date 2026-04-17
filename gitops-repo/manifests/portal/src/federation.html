@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Federation — GitOps Landing Zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cf-red: #E63946;
+  --cf-blue: #1D3557;
+  --cf-blue-mid: #457B9D;
+  --cf-yellow: #F4D35E;
+  --cf-white: #F1FAEE;
+  --cf-black: #0D1B2A;
+  --cf-gray-100: #E8ECEF;
+  --cf-gray-500: #6B757D;
+  --cf-gray-700: #3A4147;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--cf-white); color: var(--cf-black); font-family: var(--font); font-size: 16px; line-height: 1.55; }
+.topbar {
+  background: var(--cf-blue);
+  border-bottom: 4px solid var(--cf-red);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.topbar-brand { font-weight: 900; font-size: 1.4rem; text-transform: uppercase; letter-spacing: -0.01em; color: var(--cf-white); }
+.topbar-brand span { color: var(--cf-yellow); }
+.topbar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.topbar-nav a {
+  font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--cf-white); text-decoration: none; padding: 8px 14px;
+  border: 2px solid transparent;
+}
+.topbar-nav a:hover { border-color: var(--cf-yellow); color: var(--cf-yellow); }
+.topbar-nav a.active { background: var(--cf-yellow); color: var(--cf-black); border-color: var(--cf-yellow); }
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+.eyebrow {
+  display: inline-block; font-weight: 700; font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--cf-white); background: var(--cf-red); padding: 4px 10px;
+  margin-bottom: 1rem;
+}
+h1 { font-weight: 900; font-size: clamp(2rem, 4vw, 3rem); line-height: 1; text-transform: uppercase; letter-spacing: -0.02em; color: var(--cf-blue); margin-bottom: 0.5rem; }
+h2 { font-weight: 900; font-size: clamp(1.4rem, 2.5vw, 1.8rem); text-transform: uppercase; color: var(--cf-blue); margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--cf-black); }
+p { color: var(--cf-gray-700); font-size: 0.95rem; margin-bottom: 0.85rem; }
+.lead { font-size: 1.05rem; margin-bottom: 1.5rem; line-height: 1.65; }
+code { font-family: var(--mono); font-size: 0.85em; background: var(--cf-yellow); padding: 1px 6px; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.86rem; }
+th {
+  font-weight: 900; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--cf-white); background: var(--cf-blue); text-align: left;
+  padding: 0.6rem 0.75rem; border: 2px solid var(--cf-black);
+}
+td { padding: 0.55rem 0.75rem; border: 2px solid var(--cf-black); background: var(--cf-white); vertical-align: top; }
+td:first-child { font-weight: 700; color: var(--cf-blue); }
+tr.depth-0 td:first-child { background: var(--cf-yellow); color: var(--cf-black); }
+tr.depth-1 td:first-child { background: var(--cf-gray-100); }
+tr.depth-2 td:first-child { padding-left: 2rem; }
+.diagram {
+  border: 2px solid var(--cf-black);
+  background: var(--cf-black);
+  color: var(--cf-white);
+  padding: 1.5rem 2rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+}
+.diagram .d0 { color: var(--cf-yellow); font-weight: 700; }
+.diagram .d1 { color: #2A9D8F; }
+.diagram .d2 { color: var(--cf-blue-mid); }
+.diagram .hl { color: var(--cf-red); font-weight: 700; }
+.skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem; margin: 1rem 0 1.5rem; }
+.skill-card { border: 2px solid var(--cf-black); padding: 1rem 1.25rem; background: var(--cf-white); }
+.skill-name { font-family: var(--mono); font-weight: 700; font-size: 0.9rem; color: var(--cf-red); margin-bottom: 0.3rem; }
+.skill-desc { font-size: 0.82rem; color: var(--cf-gray-700); }
+.footer { border-top: 2px solid var(--cf-black); padding: 1.5rem 2rem; text-align: center; font-size: 0.75rem; color: var(--cf-gray-500); background: var(--cf-gray-100); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">GitOps <span>Agent Federation</span></div>
+  <nav class="topbar-nav">
+    <a href="index.html">Portal</a>
+    <a href="federation.html" class="active">Federation</a>
+  </nav>
+</header>
+
+<main class="container">
+  <span class="eyebrow">AI-Powered Infrastructure Management</span>
+  <h1>Claude Agent Federation</h1>
+  <p class="lead">
+    A 6-agent, depth-2 hierarchy that manages the base landing zone. Agents coordinate via a shared state file, dispatch work in parallel phases, and use 12 reusable skills for common operations. Extend this federation with your own domain agents when you add applications.
+  </p>
+
+  <h2>Agent Hierarchy</h2>
+  <div class="diagram"><span class="d0">orchestrator</span> <span class="hl">(depth 0, opus)</span>
+├── <span class="d1">platform-infra</span> (depth 1, opus)
+│   ├── <span class="d2">cluster-lifecycle</span> (depth 2, sonnet) — k3d, network, metallb, coredns
+│   └── <span class="d2">gitea-argocd</span> (depth 2, sonnet) — gitea, argocd, keycloak, oidc
+│
+├── <span class="d1">observability</span> (depth 1, sonnet) — prometheus, grafana, loki, promtail
+│
+└── <span class="d1">security</span> (depth 1, sonnet) — sealed-secrets, vaultwarden, rbac, netpol</div>
+
+  <p><strong>6 agents total:</strong> 1 orchestrator + 3 domain agents + 2 sub-agents. Max 6 concurrent threads per agent.</p>
+
+  <h2>Agent Registry</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Depth</th><th>Parent</th><th>Responsibilities</th></tr></thead>
+    <tbody>
+      <tr class="depth-0"><td>orchestrator</td><td>0</td><td>&mdash;</td><td>Dispatch domain agents, resolve conflicts, run cluster-health</td></tr>
+      <tr class="depth-1"><td>platform-infra</td><td>1</td><td>orchestrator</td><td>k3d cluster, Gitea, ArgoCD, Keycloak, MetalLB, cert-manager</td></tr>
+      <tr class="depth-2"><td>cluster-lifecycle</td><td>2</td><td>platform-infra</td><td>k3d create/patch, Docker network, CoreDNS, hosts file, image imports</td></tr>
+      <tr class="depth-2"><td>gitea-argocd</td><td>2</td><td>platform-infra</td><td>Gitea compose, ArgoCD helm, Keycloak realms, OIDC, app-of-apps</td></tr>
+      <tr class="depth-1"><td>observability</td><td>1</td><td>orchestrator</td><td>Prometheus, Grafana, Loki, Promtail, dashboards, alert rules</td></tr>
+      <tr class="depth-1"><td>security</td><td>1</td><td>orchestrator</td><td>Sealed-secrets, Vaultwarden, NetworkPolicies, RBAC, TLS certs</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Extending the Federation</h2>
+  <p>
+    When you add an application to this landing zone, create a new depth-1 agent for it and optionally
+    add depth-2 sub-agents. Drop a new file in <code>.claude/agents/your-app.md</code>. Follow the
+    pattern used in <code>platform-infra.md</code> — declare responsibilities, owned paths,
+    owned namespaces, and coordination rules.
+  </p>
+
+  <h2>Skills (Slash Commands)</h2>
+  <p>12 reusable workflows that any agent can invoke:</p>
+  <div class="skill-grid">
+    <div class="skill-card"><div class="skill-name">/kubectl-status</div><div class="skill-desc">Namespace health summary</div></div>
+    <div class="skill-card"><div class="skill-name">/argocd-sync</div><div class="skill-desc">Sync app + wait until Healthy</div></div>
+    <div class="skill-card"><div class="skill-name">/docker-build-import</div><div class="skill-desc">Build + k3d import (tarball fallback)</div></div>
+    <div class="skill-card"><div class="skill-name">/helm-validate</div><div class="skill-desc">Lint + template dry-run</div></div>
+    <div class="skill-card"><div class="skill-name">/kubeseal-secret</div><div class="skill-desc">Encrypt secret with kubeseal</div></div>
+    <div class="skill-card"><div class="skill-name">/bootstrap-phase</div><div class="skill-desc">Run numbered bootstrap script</div></div>
+    <div class="skill-card"><div class="skill-name">/gitea-api</div><div class="skill-desc">Gitea REST API wrapper</div></div>
+    <div class="skill-card"><div class="skill-name">/keycloak-admin</div><div class="skill-desc">Keycloak Admin API wrapper</div></div>
+    <div class="skill-card"><div class="skill-name">/kustomize-build</div><div class="skill-desc">Build + validate kustomize overlay</div></div>
+    <div class="skill-card"><div class="skill-name">/grafana-dashboard</div><div class="skill-desc">Upload dashboard JSON</div></div>
+    <div class="skill-card"><div class="skill-name">/cluster-health</div><div class="skill-desc">Full cluster verification</div></div>
+    <div class="skill-card"><div class="skill-name">/netpol-test</div><div class="skill-desc">Test network connectivity</div></div>
+  </div>
+
+  <h2>State Coordination</h2>
+  <p>
+    Agents share state via <code>.claude/team-state.json</code> (gitignored). Before starting work,
+    each agent reads the file to check readiness flags. After a task completes, the agent updates its
+    status and appends to the history array. Cross-domain dependencies (e.g., <code>cluster_ready</code>,
+    <code>argocd_ready</code>) gate execution order.
+  </p>
+
+  <p style="margin-top: 3rem; text-align: center;">
+    <a href="index.html" style="display: inline-block; padding: 10px 18px; background: var(--cf-blue); color: var(--cf-white); border: 2px solid var(--cf-blue); text-decoration: none; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em;">&larr; Back to Portal</a>
+  </p>
+
+</main>
+
+<footer class="footer">
+  GitOps Landing Zone &middot; Claude Agent Federation &middot; 6 Base Agents &middot; 12 Skills
+</footer>
+</body>
+</html>

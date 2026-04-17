@@ -1,0 +1,138 @@
+services:
+  gitea-db:
+    image: postgres:16-alpine
+    container_name: gitea-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${GITEA_DB_USER}
+      POSTGRES_PASSWORD: ${GITEA_DB_PASSWORD}
+      POSTGRES_DB: ${GITEA_DB_NAME}
+    volumes:
+      - gitea-db-data:/var/lib/postgresql/data
+    networks:
+      - gitops
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GITEA_DB_USER} -d ${GITEA_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: gitea
+    restart: unless-stopped
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      # Skip the install wizard
+      - GITEA__security__INSTALL_LOCK=true
+      # Database
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__NAME=${GITEA_DB_NAME}
+      - GITEA__database__USER=${GITEA_DB_USER}
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
+      # Server
+      - GITEA__server__DOMAIN=gitea.local
+      - GITEA__server__SSH_DOMAIN=gitea.local
+      - GITEA__server__ROOT_URL=${GITEA_EXTERNAL_URL}
+      - GITEA__server__SSH_PORT=${GITEA_SSH_PORT}
+      - GITEA__server__SSH_LISTEN_PORT=22
+      - GITEA__server__LFS_START_SERVER=true
+      # Service
+      - GITEA__service__DISABLE_REGISTRATION=false
+      - GITEA__service__REQUIRE_SIGNIN_VIEW=false
+      - GITEA__service__ENABLE_NOTIFY_MAIL=false
+      # Actions
+      - GITEA__actions__ENABLED=true
+      # OAuth2 / OpenID
+      - GITEA__openid__ENABLE_OPENID_SIGNIN=true
+      - GITEA__openid__ENABLE_OPENID_SIGNUP=true
+      - GITEA__oauth2__ENABLED=true
+      # Webhook - allow local network delivery (for ArgoCD webhooks)
+      - GITEA__webhook__ALLOWED_HOST_LIST=*
+      # Prometheus metrics
+      - GITEA__metrics__ENABLED=true
+      - GITEA__metrics__TOKEN=
+    ports:
+      - "${GITEA_HTTP_PORT}:3000"
+      - "${GITEA_SSH_PORT}:22"
+    extra_hosts:
+      - "keycloak.local:172.20.0.100"
+      - "argocd.local:172.20.0.100"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - gitops
+
+  gitea-runner:
+    image: gitea/act_runner:0.2.11
+    container_name: gitea-runner
+    restart: unless-stopped
+    depends_on:
+      - gitea
+    environment:
+      GITEA_INSTANCE_URL: http://gitea:3000
+      GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
+      GITEA_RUNNER_NAME: local-runner
+      GITEA_RUNNER_LABELS: "ubuntu-latest:docker://node:20-bookworm,ubuntu-22.04:docker://node:20-bookworm"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gitea-runner-data:/data
+    networks:
+      - gitops
+
+  dnsmasq:
+    image: jpillora/dnsmasq:latest
+    container_name: dnsmasq
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "127.0.0.1:53:53/udp"
+      - "127.0.0.1:53:53/tcp"
+    volumes:
+      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro
+    networks:
+      gitops:
+        ipv4_address: 172.20.0.2
+    # dnsmasq logs to stdout; docker logs dnsmasq to debug queries
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
+      - SIGNUPS_ALLOWED=true
+      - DOMAIN=https://localhost:8443
+      - ROCKET_TLS={certs="/ssl/vault.crt",key="/ssl/vault.key"}
+      - ROCKET_PORT=443
+    ports:
+      - "8443:443"
+    volumes:
+      - vaultwarden-data:/data
+      - ./certs:/ssl:ro
+    networks:
+      - gitops
+
+volumes:
+  gitea-db-data:
+  gitea-data:
+  gitea-runner-data:
+  vaultwarden-data:
+
+networks:
+  gitops:
+    external: true
+    name: ${DOCKER_NETWORK}

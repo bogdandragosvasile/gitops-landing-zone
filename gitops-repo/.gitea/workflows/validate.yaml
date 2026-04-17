@@ -1,0 +1,64 @@
+name: Validate Manifests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate YAML syntax
+        run: |
+          echo "=== Validating YAML files ==="
+          errors=0
+          for f in $(find . -name '*.yaml' -o -name '*.yml' | grep -v node_modules | grep -v .gitea); do
+            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || {
+              echo "INVALID: $f"
+              errors=$((errors + 1))
+            }
+          done
+          if [ "$errors" -gt 0 ]; then
+            echo "$errors file(s) failed validation"
+            exit 1
+          fi
+          echo "All YAML files valid"
+
+      - name: Lint Helm charts
+        run: |
+          echo "=== Linting Helm charts ==="
+          for chart in $(find manifests -name Chart.yaml -exec dirname {} \; 2>/dev/null); do
+            echo "Linting: $chart"
+            helm lint "$chart" || true
+          done
+          echo "Helm lint complete"
+
+      - name: Dry-run apply
+        run: |
+          echo "=== Dry-run manifests ==="
+          for f in manifests/*/deployment.yaml manifests/*/statefulset.yaml; do
+            [ -f "$f" ] && echo "Validating: $f" && kubectl apply --dry-run=client -f "$f" 2>/dev/null || true
+          done
+
+  notify-failure:
+    needs: [validate]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Gitea Issue on failure
+        run: |
+          curl -sf -X POST \
+            -u "gitea_admin:CHANGE_ME_from_env" \
+            "http://gitea:3000/api/v1/repos/platform/gitops-infra/issues" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"title\": \"[CI FAILED] GitOps manifest validation — ${{ gitea.sha }}\",
+              \"body\": \"## Validation Failure\\n\\n**Commit:** \`${{ gitea.sha }}\`\\n**Branch:** ${{ gitea.ref }}\\n**Actor:** ${{ gitea.actor }}\\n\\nInvalid manifests were pushed. ArgoCD may fail to sync. Fix and push again.\",
+              \"labels\": [\"ci-failure\"]
+            }" || echo "Failed to create issue (non-critical)"

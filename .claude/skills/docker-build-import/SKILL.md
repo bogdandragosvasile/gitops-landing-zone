@@ -1,0 +1,26 @@
+---
+name: docker-build-import
+description: Build a Docker image and import it into the k3d cluster. Handles multi-arch manifests via tarball method. Use when building application images.
+allowed-tools: Bash(docker *) Bash(k3d *)
+---
+
+# Docker Build + k3d Import
+
+Build and import an image. Arguments: `<dockerfile-dir> <image:tag> [--platform linux/amd64]`
+
+Steps:
+1. Build: `docker build -t <image:tag> <dockerfile-dir>`
+2. Try k3d import first: `k3d image import <image:tag> -c gitops-local`
+3. If k3d import fails (multi-arch digest error), use the tarball method:
+   ```bash
+   docker save <image:tag> -o /tmp/img.tar
+   for n in k3d-gitops-local-server-0 k3d-gitops-local-agent-0 k3d-gitops-local-agent-1; do
+     docker cp /tmp/img.tar $n:/tmp/img.tar
+     docker exec $n ctr -n=k8s.io images import /tmp/img.tar
+     docker exec $n rm -f /tmp/img.tar
+   done
+   rm /tmp/img.tar
+   ```
+4. Verify image exists on all nodes: `docker exec <node> crictl images | grep <image-name>`
+
+IMPORTANT: Use `MSYS_NO_PATHCONV=1` prefix for any `docker exec` commands with Unix paths on Windows/Git Bash.

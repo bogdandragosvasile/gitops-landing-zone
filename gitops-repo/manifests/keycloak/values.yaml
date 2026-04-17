@@ -1,0 +1,64 @@
+## Keycloak Helm values for local GitOps environment
+## Chart: codecentric/keycloakx v7.1.9
+
+replicas: 1
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.3.2"
+
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-enabled=true"
+  - "--hostname-strict=false"
+
+extraEnv: |
+  - name: KEYCLOAK_ADMIN
+    value: admin
+  - name: KEYCLOAK_ADMIN_PASSWORD
+    value: CHANGE_ME_from_env
+  - name: KC_DB
+    value: postgres
+  - name: KC_DB_URL
+    value: jdbc:postgresql://keycloak-postgres.keycloak.svc.cluster.local:5432/keycloak
+  - name: KC_DB_USERNAME
+    value: keycloak
+  - name: KC_DB_PASSWORD
+    value: CHANGE_ME_from_env
+  - name: KC_PROXY_HEADERS
+    value: xforwarded
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KC_HOSTNAME_STRICT
+    value: "false"
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  rules:
+    - host: keycloak.local
+      paths:
+        - path: /
+          pathType: Prefix
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+
+# Health checks for the official image
+health:
+  enabled: true
+  startupPath: /health/started
+  readinessPath: /health/ready
+  livenessPath: /health/live
+
+http:
+  relativePath: /

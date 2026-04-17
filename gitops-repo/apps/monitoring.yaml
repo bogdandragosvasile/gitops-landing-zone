@@ -1,0 +1,172 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    # kube-prometheus-stack (Prometheus + Grafana + node-exporter + kube-state-metrics)
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 72.6.2
+      helm:
+        releaseName: monitoring
+        skipCrds: false
+        valuesObject:
+          prometheusOperator:
+            admissionWebhooks:
+              enabled: false
+            tls:
+              enabled: false
+          grafana:
+            adminUser: admin
+            adminPassword: CHANGE_ME_from_env
+            persistence:
+              enabled: false
+            ingress:
+              enabled: true
+              ingressClassName: traefik
+              hosts: [grafana.local]
+              annotations:
+                traefik.ingress.kubernetes.io/router.entrypoints: web
+            sidecar:
+              dashboards:
+                enabled: true
+                searchNamespace: ALL
+              datasources:
+                enabled: true
+            additionalDataSources:
+              - name: Loki
+                type: loki
+                url: http://loki.monitoring.svc.cluster.local:3100
+                access: proxy
+                isDefault: false
+            resources:
+              requests: {cpu: 100m, memory: 256Mi}
+              limits: {cpu: 500m, memory: 512Mi}
+          prometheus:
+            prometheusSpec:
+              retention: 7d
+              resources:
+                requests: {cpu: 100m, memory: 512Mi}
+                limits: {cpu: 1000m, memory: 1Gi}
+              storageSpec: {}
+              additionalScrapeConfigs:
+                - job_name: gitea
+                  static_configs:
+                    - targets: ['gitea:3000']
+                  metrics_path: /metrics
+                  scrape_interval: 30s
+              podMonitorSelectorNilUsesHelmValues: false
+              serviceMonitorSelectorNilUsesHelmValues: false
+              ruleSelectorNilUsesHelmValues: false
+            ingress:
+              enabled: true
+              ingressClassName: traefik
+              hosts: [prometheus.local]
+              annotations:
+                traefik.ingress.kubernetes.io/router.entrypoints: web
+          alertmanager:
+            enabled: false
+          nodeExporter:
+            enabled: true
+            resources:
+              requests: {cpu: 50m, memory: 32Mi}
+              limits: {cpu: 200m, memory: 64Mi}
+          kube-state-metrics:
+            resources:
+              requests: {cpu: 50m, memory: 64Mi}
+              limits: {cpu: 200m, memory: 128Mi}
+          kubeEtcd: {enabled: false}
+          kubeControllerManager: {enabled: false}
+          kubeScheduler: {enabled: false}
+          kubeProxy: {enabled: false}
+    # Loki (log aggregation)
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki
+      targetRevision: 6.30.0
+      helm:
+        releaseName: loki
+        valuesObject:
+          deploymentMode: SingleBinary
+          loki:
+            auth_enabled: false
+            commonConfig:
+              replication_factor: 1
+            storage:
+              type: filesystem
+            schemaConfig:
+              configs:
+                - from: "2024-01-01"
+                  store: tsdb
+                  object_store: filesystem
+                  schema: v13
+                  index:
+                    prefix: loki_index_
+                    period: 24h
+          singleBinary:
+            replicas: 1
+            resources:
+              requests: {cpu: 100m, memory: 256Mi}
+              limits: {cpu: 500m, memory: 512Mi}
+            persistence:
+              enabled: false
+            extraVolumes:
+              - name: data
+                emptyDir: {}
+            extraVolumeMounts:
+              - name: data
+                mountPath: /var/loki
+          backend: {replicas: 0}
+          read: {replicas: 0}
+          write: {replicas: 0}
+          gateway: {enabled: false}
+          test: {enabled: false}
+          chunksCache: {enabled: false}
+          resultsCache: {enabled: false}
+    # Promtail (log shipper)
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: promtail
+      targetRevision: 6.16.6
+      helm:
+        releaseName: promtail
+        valuesObject:
+          config:
+            clients:
+              - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          tolerations:
+            - effect: NoSchedule
+              operator: Exists
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks

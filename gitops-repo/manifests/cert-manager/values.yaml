@@ -1,0 +1,21 @@
+## cert-manager Helm values
+## Chart: jetstack/cert-manager v1.16.3
+
+crds:
+  enabled: true
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+webhook:
+  replicaCount: 1
+
+cainjector:
+  replicaCount: 1
