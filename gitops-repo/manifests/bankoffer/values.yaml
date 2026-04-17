@@ -1,0 +1,114 @@
+## BankOffer AI — Landing Zone Helm values
+## Overrides for local k3d environment
+## Source chart: platform/bankoffer-platform (infra/helm/bankoffer)
+
+global:
+  imagePullSecrets: []
+  security:
+    allowInsecureImages: true
+
+api:
+  replicaCount: 1
+
+  image:
+    repository: bankoffer-api
+    pullPolicy: Never
+    tag: "dev"
+
+  autoscaling:
+    enabled: false
+
+  pdb:
+    enabled: false
+
+  config:
+    demoMode: "true"
+    logLevel: "info"
+    keycloakRealm: gitops
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+seed:
+  enabled: true
+  image:
+    repository: bankoffer-api
+    pullPolicy: Never
+    tag: "dev"
+  initImage: postgres:16-alpine
+
+keycloakSync:
+  enabled: false
+
+# Disable embedded Keycloak — use landing zone Keycloak instead
+keycloak:
+  enabled: false
+
+# PostgreSQL sub-chart (Bitnami) — use locally imported image (bitnami/postgresql:latest imported as bankoffer-postgresql:dev)
+postgresql:
+  enabled: true
+  image:
+    registry: ""
+    repository: bankoffer-postgresql
+    tag: "dev"
+    pullPolicy: Never
+  auth:
+    database: bankofferingai
+    username: bankofferuser
+    password: bankoffer123
+  primary:
+    persistence:
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Redis sub-chart (Bitnami)
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: redis123
+  master:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# Employee-facing ingress — local override
+ingressEmployee:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  host: bankoffer.local
+  tls: false
+
+ingressCustomer:
+  enabled: false
+
+# Disable built-in NetworkPolicy — it's hardcoded for nginx; landing zone uses Traefik (kube-system)
+networkPolicy:
+  enabled: false

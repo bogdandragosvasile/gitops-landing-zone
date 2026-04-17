@@ -44,6 +44,18 @@ configs:
       type: git
       username: "${GITEA_ADMIN_USER}"
       password: "${GITEA_ADMIN_PASSWORD}"
+    gitea-bankoffer-platform:
+      url: http://gitea:3000/platform/bankoffer-platform.git
+      name: bankoffer-platform
+      type: git
+      username: "${GITEA_ADMIN_USER}"
+      password: "${GITEA_ADMIN_PASSWORD}"
+    gitea-careerforge:
+      url: http://gitea:3000/platform/careerforge.git
+      name: careerforge
+      type: git
+      username: "${GITEA_ADMIN_USER}"
+      password: "${GITEA_ADMIN_PASSWORD}"
 
 controller:
   replicas: 1
