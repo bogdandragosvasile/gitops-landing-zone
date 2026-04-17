@@ -12,6 +12,7 @@ command:
   - "start"
   - "--http-enabled=true"
   - "--hostname-strict=false"
+  - "--proxy-headers=xforwarded"
 
 extraEnv: |
   - name: KEYCLOAK_ADMIN
@@ -26,12 +27,6 @@ extraEnv: |
     value: keycloak
   - name: KC_DB_PASSWORD
     value: "${KEYCLOAK_DB_PASSWORD}"
-  - name: KC_PROXY_HEADERS
-    value: xforwarded
-  - name: KC_HTTP_ENABLED
-    value: "true"
-  - name: KC_HOSTNAME_STRICT
-    value: "false"
 
 ingress:
   enabled: true
@@ -53,7 +48,6 @@ resources:
     cpu: 1000m
     memory: 1024Mi
 
-# Health checks for the official image
 health:
   enabled: true
   startupPath: /health/started

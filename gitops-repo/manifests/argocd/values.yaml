@@ -1,5 +1,5 @@
 ## ArgoCD Helm values for local GitOps environment
-## Chart: argo/argo-cd v7.7.16
+## Chart: argo/argo-cd v9.4.17
 
 global:
   domain: argocd.local
@@ -15,29 +15,35 @@ server:
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: web
 
-  config:
-    url: http://argocd.local
-    application.instanceLabelKey: argocd.argoproj.io/instance
-    admin.enabled: "true"
+configs:
+  params:
+    server.insecure: true
 
-  rbacConfig:
+  cm:
+    url: "http://${ARGOCD_HOST}"
+    admin.enabled: "true"
+    oidc.config: |
+      name: Keycloak
+      issuer: http://${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}
+      clientID: ${OIDC_ARGOCD_CLIENT_ID}
+      clientSecret: ${OIDC_ARGOCD_CLIENT_SECRET}
+      requestedScopes:
+        - openid
+        - profile
+        - email
+
+  rbac:
     policy.default: role:readonly
     policy.csv: |
       g, admin, role:admin
 
-configs:
-  params:
-    server.insecure: true
-  cm:
-    url: http://argocd.local
-    admin.enabled: "true"
   repositories:
     gitea-gitops-infra:
       url: http://gitea:3000/platform/gitops-infra.git
       name: gitops-infra
       type: git
-      username: gitea_admin
-      password: CHANGE_ME_from_env
+      username: "${GITEA_ADMIN_USER}"
+      password: "${GITEA_ADMIN_PASSWORD}"
 
 controller:
   replicas: 1

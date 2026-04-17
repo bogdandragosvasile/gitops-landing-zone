@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] — 1.1.0
+## [Unreleased]
+
+---
+
+## [1.1.1] — 2026-04-17
+
+### Added
+- `gitops-repo/manifests/keycloak/configure-job.yaml` — ArgoCD PostSync hook Job that idempotently creates the Keycloak realm, OIDC clients (Gitea + ArgoCD), groups scope, and dev user after every keycloak app sync; uses `alpine:3.20` with `curl` + `python3`; deleted by ArgoCD on success
+
+### Changed
+- `gitops-repo/manifests/argocd/values.yaml`: ArgoCD OIDC config (`oidc.config`), RBAC policy, and Gitea repo credential are now declared in Git and managed by ArgoCD itself — no more `kubectl patch` outside of GitOps; removed deprecated `server.config`/`server.rbacConfig` in favour of `configs.cm`/`configs.rbac`
+- `gitops-repo/manifests/keycloak/values.yaml`: moved `--proxy-headers=xforwarded` from `extraEnv` to the `command` array; removed `KC_PROXY_HEADERS`, `KC_HTTP_ENABLED`, `KC_HOSTNAME_STRICT` from `extraEnv` (duplicated chart defaults, caused ArgoCD `ComparisonError`)
+- `scripts/10-configure-oidc.sh`: reduced to Gitea OIDC provider setup only (legitimately imperative — Gitea has no REST API for auth sources); waits for the Keycloak gitops realm to be reachable via OIDC discovery URL instead of polling a transient Job
+
+### Fixed
+- ArgoCD `selfHeal: true` was reverting every `kubectl patch argocd-cm` from the old phase 10 — OIDC config is now in `values.yaml` so ArgoCD self-manages its own OIDC instead of fighting the script
+- `gitops-repo/manifests/argocd/values.yaml`: `configs.repositories.password` was the literal string `CHANGE_ME_from_env` — changed to `${GITEA_ADMIN_PASSWORD}` so `envsubst` in phase 07 injects the real credential; ArgoCD now self-manages its Gitea repo secret
+- `keycloak/values.yaml` and `keycloak-postgres/secret.yaml`: duplicate `KC_PROXY_HEADERS` env var between chart defaults and `extraEnv` caused `ComparisonError` in ArgoCD strategic merge patch — removed duplicates from `extraEnv`
+
+---
+
+## [1.1.0] — 2026-04-17
 
 ### Added
 - Platform detection (`detect_platform()` in `scripts/lib/common.sh`) — returns `wsl`, `linux`, or `windows`
@@ -38,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] — 2026-04-17
+## [1.0.0] — 2026-04-16
 
 Initial release of the GitOps Landing Zone.
 
@@ -66,5 +87,7 @@ Initial release of the GitOps Landing Zone.
 - **12 reusable skills**: `/kubectl-status`, `/argocd-sync`, `/docker-build-import`, `/helm-validate`, `/kubeseal-secret`, `/bootstrap-phase`, `/gitea-api`, `/keycloak-admin`, `/kustomize-build`, `/grafana-dashboard`, `/cluster-health`, `/netpol-test`
 - `.env.example` with all required variables; `.gitleaks.toml` secret scanner config
 
-[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/releases/tag/v1.0.0

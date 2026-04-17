@@ -1,0 +1,142 @@
+---
+# Keycloak realm / client / user bootstrapping — runs as an ArgoCD PostSync hook.
+# Idempotent: all resources are created only if they do not already exist.
+# Runs after every keycloak app sync; harmless on repeat runs.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-configure-script
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+data:
+  configure.sh: |
+    #!/bin/sh
+    set -e
+
+    KC_URL="http://keycloak-keycloakx-http.keycloak.svc.cluster.local"
+    KC_ADMIN_USER="${KEYCLOAK_ADMIN_USER}"
+    KC_ADMIN_PASS="${KEYCLOAK_ADMIN_PASSWORD}"
+    KC_REALM="${KEYCLOAK_REALM}"
+    GITEA_CLIENT_ID="${OIDC_GITEA_CLIENT_ID}"
+    GITEA_CLIENT_SECRET="${OIDC_GITEA_CLIENT_SECRET}"
+    GITEA_REDIRECT="${GITEA_URL}"
+    ARGOCD_CLIENT_ID="${OIDC_ARGOCD_CLIENT_ID}"
+    ARGOCD_CLIENT_SECRET="${OIDC_ARGOCD_CLIENT_SECRET}"
+    ARGOCD_REDIRECT="http://${ARGOCD_HOST}"
+
+    log()  { echo "[INFO] $*"; }
+    ok()   { echo "[ OK] $*"; }
+
+    log "Waiting for Keycloak..."
+    until curl -sf "$KC_URL/realms/master/.well-known/openid-configuration" >/dev/null 2>&1; do sleep 3; done
+    ok "Keycloak ready"
+
+    get_token() {
+      curl -sf -X POST "$KC_URL/realms/master/protocol/openid-connect/token" \
+        -d "grant_type=password&client_id=admin-cli&username=$KC_ADMIN_USER&password=$KC_ADMIN_PASS" \
+        | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])"
+    }
+    TOKEN=$(get_token)
+
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+      "$KC_URL/admin/realms/$KC_REALM")
+    if [ "$STATUS" = "404" ]; then
+      log "Creating realm $KC_REALM..."
+      curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        "$KC_URL/admin/realms" \
+        -d "{\"realm\":\"$KC_REALM\",\"enabled\":true,\"displayName\":\"GitOps Local Dev\",\"sslRequired\":\"none\",\"registrationAllowed\":true,\"loginWithEmailAllowed\":true,\"resetPasswordAllowed\":true}"
+      TOKEN=$(get_token); ok "Realm $KC_REALM created"
+    else
+      log "Realm $KC_REALM exists"
+    fi
+
+    for CID_SECRET in "${GITEA_CLIENT_ID}|${GITEA_CLIENT_SECRET}|${GITEA_REDIRECT}|Gitea" \
+                      "${ARGOCD_CLIENT_ID}|${ARGOCD_CLIENT_SECRET}|${ARGOCD_REDIRECT}|ArgoCD"; do
+      CID=$(echo "$CID_SECRET" | cut -d'|' -f1)
+      CSECRET=$(echo "$CID_SECRET" | cut -d'|' -f2)
+      CURI=$(echo "$CID_SECRET" | cut -d'|' -f3)
+      CNAME=$(echo "$CID_SECRET" | cut -d'|' -f4)
+      N=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/clients?clientId=$CID" \
+        | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+      if [ "$N" = "0" ]; then
+        log "Creating $CNAME client..."
+        curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+          "$KC_URL/admin/realms/$KC_REALM/clients" \
+          -d "{\"clientId\":\"$CID\",\"name\":\"$CNAME\",\"enabled\":true,\"clientAuthenticatorType\":\"client-secret\",\"secret\":\"$CSECRET\",\"redirectUris\":[\"$CURI/*\"],\"webOrigins\":[\"$CURI\"],\"standardFlowEnabled\":true,\"directAccessGrantsEnabled\":true,\"publicClient\":false,\"protocol\":\"openid-connect\"}"
+        ok "$CNAME client created"
+      else
+        log "$CNAME client exists"
+      fi
+    done
+
+    TOKEN=$(get_token)
+    GROUPS_ID=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/client-scopes" \
+      | python3 -c "import sys,json; s=[x['id'] for x in json.load(sys.stdin) if x['name']=='groups']; print(s[0] if s else '')")
+    if [ -z "$GROUPS_ID" ]; then
+      log "Creating groups scope..."
+      curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        "$KC_URL/admin/realms/$KC_REALM/client-scopes" \
+        -d '{"name":"groups","description":"User group memberships","protocol":"openid-connect","attributes":{"include.in.token.scope":"true","display.on.consent.screen":"true"},"protocolMappers":[{"name":"groups","protocol":"openid-connect","protocolMapper":"oidc-group-membership-mapper","config":{"claim.name":"groups","full.path":"false","id.token.claim":"true","access.token.claim":"true","userinfo.token.claim":"true"}}]}'
+      TOKEN=$(get_token)
+      GROUPS_ID=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/client-scopes" \
+        | python3 -c "import sys,json; s=[x['id'] for x in json.load(sys.stdin) if x['name']=='groups']; print(s[0] if s else '')")
+      ok "groups scope created"
+    fi
+    for CID in "${GITEA_CLIENT_ID}" "${ARGOCD_CLIENT_ID}"; do
+      UUID=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/clients?clientId=$CID" \
+        | python3 -c "import sys,json; c=json.load(sys.stdin); print(c[0]['id'] if c else '')")
+      [ -n "$UUID" ] && [ -n "$GROUPS_ID" ] && \
+        curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
+          "$KC_URL/admin/realms/$KC_REALM/clients/$UUID/optional-client-scopes/$GROUPS_ID" \
+          >/dev/null 2>&1 || true
+    done
+    ok "groups scope linked"
+
+    TOKEN=$(get_token)
+    N=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/users?username=dev" \
+      | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+    if [ "$N" = "0" ]; then
+      log "Creating dev user..."
+      curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        "$KC_URL/admin/realms/$KC_REALM/users" \
+        -d '{"username":"dev","email":"dev@local.dev","firstName":"Local","lastName":"Developer","enabled":true,"emailVerified":true,"credentials":[{"type":"password","value":"dev","temporary":false}]}'
+      ok "dev user created (password: dev)"
+    else
+      log "dev user exists"
+    fi
+    ok "Keycloak configuration complete"
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-configure
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: keycloak-configure
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: configure
+          image: alpine:3.20
+          command: ["/bin/sh", "-c"]
+          args:
+            - apk add --no-cache curl python3 >/dev/null 2>&1 && exec /bin/sh /scripts/configure.sh
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: keycloak-configure-script
+            defaultMode: 0755
