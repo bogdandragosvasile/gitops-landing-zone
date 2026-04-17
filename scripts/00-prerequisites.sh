@@ -39,9 +39,16 @@ fi
 if ! command -v argocd &>/dev/null; then
   log_info "Installing argocd CLI..."
   ARGOCD_VERSION=$(curl -s https://api.github.com/repos/argoproj/argo-cd/releases/latest | grep tag_name | cut -d '"' -f 4)
-  curl -sSL -o "$USER_BIN/argocd.exe" \
-    "https://github.com/argoproj/argo-cd/releases/download/${ARGOCD_VERSION}/argocd-windows-amd64.exe"
-  chmod +x "$USER_BIN/argocd.exe"
+  if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
+    ARGOCD_BIN="argocd-linux-amd64"
+    ARGOCD_OUT="$USER_BIN/argocd"
+  else
+    ARGOCD_BIN="argocd-windows-amd64.exe"
+    ARGOCD_OUT="$USER_BIN/argocd.exe"
+  fi
+  curl -sSL -o "$ARGOCD_OUT" \
+    "https://github.com/argoproj/argo-cd/releases/download/${ARGOCD_VERSION}/${ARGOCD_BIN}"
+  chmod +x "$ARGOCD_OUT"
   log_ok "argocd CLI installed: $(argocd version --client --short 2>/dev/null || echo 'installed')"
 else
   log_ok "argocd CLI already installed: $(argocd version --client --short 2>/dev/null || echo 'present')"
@@ -49,8 +56,17 @@ fi
 
 # kubectl
 if ! command -v kubectl &>/dev/null; then
-  log_error "kubectl is required but not found. Install it from https://kubernetes.io/docs/tasks/tools/"
-  exit 1
+  if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
+    log_info "Installing kubectl..."
+    KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+    curl -sSL -o "$USER_BIN/kubectl" \
+      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+    chmod +x "$USER_BIN/kubectl"
+    log_ok "kubectl installed: $(kubectl version --client 2>/dev/null | head -1)"
+  else
+    log_error "kubectl is required but not found. Install it from https://kubernetes.io/docs/tasks/tools/"
+    exit 1
+  fi
 else
   log_ok "kubectl already installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client 2>/dev/null | head -1)"
 fi

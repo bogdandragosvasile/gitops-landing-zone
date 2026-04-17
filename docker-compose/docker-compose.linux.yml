@@ -1,0 +1,8 @@
+# Linux / WSL override — applied on top of docker-compose.yml via COMPOSE_FILES in common.sh.
+# Removes the dnsmasq host port-53 binding that conflicts with systemd-resolved on Ubuntu/Debian.
+# In-cluster DNS still works because containers reach dnsmasq at 172.20.0.2:53.
+# Host-side *.local resolution uses /etc/hosts entries added by setup-hosts.sh.
+
+services:
+  dnsmasq:
+    ports: []

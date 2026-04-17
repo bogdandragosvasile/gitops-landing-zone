@@ -18,7 +18,7 @@ k3d cluster delete "${K3D_CLUSTER_NAME}" 2>/dev/null \
 
 # Stop and remove docker-compose services
 log_info "Stopping Gitea stack..."
-docker compose -f "$PROJECT_ROOT/docker-compose/docker-compose.yml" \
+docker compose $COMPOSE_FILES \
   --env-file "$PROJECT_ROOT/.env" \
   down -v 2>/dev/null \
   && log_ok "Gitea stack removed" \

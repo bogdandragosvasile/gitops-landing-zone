@@ -97,7 +97,7 @@ if [[ -n "$RUNNER_TOKEN" ]] && ! echo "$RUNNER_TOKEN" | grep -qi "error\|fatal";
 
   log_info "Starting Gitea runner..."
   export GITEA_RUNNER_TOKEN="$RUNNER_TOKEN"
-  docker compose -f "$COMPOSE_DIR/docker-compose.yml" \
+  docker compose $COMPOSE_FILES \
     --env-file "$PROJECT_ROOT/.env" \
     up -d gitea-runner
   log_ok "Gitea runner started"

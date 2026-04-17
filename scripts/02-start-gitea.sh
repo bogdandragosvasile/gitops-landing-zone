@@ -7,7 +7,7 @@ COMPOSE_DIR="$PROJECT_ROOT/docker-compose"
 log_info "Starting Gitea stack..."
 
 # Start without the runner first (needs registration token)
-docker compose -f "$COMPOSE_DIR/docker-compose.yml" \
+docker compose $COMPOSE_FILES \
   --env-file "$PROJECT_ROOT/.env" \
   up -d gitea-db gitea
 

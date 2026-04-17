@@ -16,6 +16,30 @@ if [[ -f "$PROJECT_ROOT/.env" ]]; then
   set +a
 fi
 
+# Detect the host platform.
+# Returns: wsl | linux | windows
+detect_platform() {
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "wsl"
+  elif [[ "$(uname -s)" == "Linux" ]]; then
+    echo "linux"
+  else
+    echo "windows"
+  fi
+}
+
+PLATFORM="$(detect_platform)"
+
+# Build the docker compose -f flags.
+# On Linux/WSL the linux override removes the dnsmasq port-53 host binding
+# which conflicts with systemd-resolved.
+COMPOSE_DIR_DEFAULT="$PROJECT_ROOT/docker-compose"
+if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
+  COMPOSE_FILES="-f $COMPOSE_DIR_DEFAULT/docker-compose.yml -f $COMPOSE_DIR_DEFAULT/docker-compose.linux.yml"
+else
+  COMPOSE_FILES="-f $COMPOSE_DIR_DEFAULT/docker-compose.yml"
+fi
+
 log_info() {
   echo -e "\033[1;34m[INFO]\033[0m $*"
 }
