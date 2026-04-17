@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] — 2026-04-17
+
+### Added
+- **`scripts/07b-push-app-repos.sh`** — new bootstrap phase that iterates `app-repos/` and pushes each subdirectory to a Gitea repo under the platform org; creates the repo via Gitea API if missing; called as step 07b in `bootstrap.sh`
+- **`scripts/09c-build-app-images.sh`** — new bootstrap phase that builds and imports all application images into every k3d node using the `docker save | docker cp | ctr images import` tarball method (multi-arch workaround); handles bankoffer-slides, careerforge-slides, bankoffer-api, bankoffer-postgresql, and careerforge-* images
+- **`app-repos/bankoffer-platform/`** — bankoffer-platform source tree (Dockerfile + Helm chart) bundled in the repo so `07b` can seed Gitea and `09c` can build `bankoffer-api:dev` from source on a fresh clone
+- **`app-repos/careerforge/`** — careerforge kustomize manifests bundled in the repo so `07b` can seed Gitea and ArgoCD can sync the `careerforge` application
+- **`gitops-repo/manifests/bankoffer-slides/src/`** — slide presentation source files (Dockerfile + HTML) so `bankoffer-slides:dev` can be built deterministically from source in `09c`
+- **`gitops-repo/manifests/careerforge-slides/src/`** — slide presentation source files (Dockerfile + nginx HTML) so `careerforge-slides:dev` can be built from source in `09c`
+- **Keycloak `bankofferai-app` OIDC client** in `gitops-repo/manifests/keycloak/configure-job.yaml` — public PKCE client (`pkce.code.challenge.method: S256`) for the BankOffer Customer Portal; created idempotently by the PostSync Job alongside existing Gitea/ArgoCD clients
+- **App hostnames in `scripts/setup-hosts.sh`**: `bankoffer.local`, `bankoffer-slides.local`, `cf-admin.local`, `cf-coach.local`, `cf-employee.local`, `cf-slides.local` added to ENTRIES so they resolve from the WSL/Linux host on a fresh bootstrap
+- **CoreDNS NodeHosts expanded in `scripts/04-create-k3d-cluster.sh`**: all 12 service hostnames (including app domains) are now patched into the CoreDNS NodeHosts configmap at cluster creation time so pods can resolve them immediately
+- **NetworkPolicy `allow-monitoring-internal-egress`** in `gitops-repo/manifests/local-ingress/network-policies.yaml` — explicit egress rule allowing all pods in the `monitoring` namespace to reach each other (Grafana → Prometheus port 9090, Prometheus → Alertmanager, etc.)
+- **NetworkPolicy ipBlock rules for node-level scrape targets** in `allow-prometheus-scrape-egress` — egress to `172.20.0.0/24` and `10.42.0.0/16` on ports 9100 (node-exporter), 10250 (kubelet), 9153 (CoreDNS metrics) so Prometheus can scrape host-network pods that bind to node IPs rather than pod IPs
+
+### Changed
+- `scripts/bootstrap.sh`: added steps `07b-push-app-repos.sh` and `09c-build-app-images.sh`; expanded the post-bootstrap URL summary to include BankOffer AI and CareerForge service URLs
+
+### Fixed
+- **Grafana "No Data" root cause** — `allow-dns-egress` (policyTypes: [Egress], podSelector: {}) implicitly denied all monitoring pod egress except port 53/UDP, blocking Grafana from reaching Prometheus. Fixed by adding `allow-monitoring-internal-egress` to permit intra-namespace egress.
+- **Prometheus unable to scrape kubelet/node-exporter/CoreDNS** — these targets bind to node IPs (hostNetwork), not pod IPs, so `namespaceSelector: {}` alone doesn't permit egress to them. Fixed by adding ipBlock CIDR rules to `allow-prometheus-scrape-egress`.
+- **Bootstrap not reproducible from a fresh clone** — app source, slide sources, and image build steps were missing. A new clone would have no `app-repos/` content, no slide Dockerfiles, and no scripts to build or import images, leaving pods in `ImagePullBackOff` or `Pending`. All gaps closed by the additions above.
+
+---
+
 ## [1.2.0] — 2026-04-17
 
 ### Added
@@ -115,7 +140,8 @@ Initial release of the GitOps Landing Zone.
 - **12 reusable skills**: `/kubectl-status`, `/argocd-sync`, `/docker-build-import`, `/helm-validate`, `/kubeseal-secret`, `/bootstrap-phase`, `/gitea-api`, `/keycloak-admin`, `/kustomize-build`, `/grafana-dashboard`, `/cluster-health`, `/netpol-test`
 - `.env.example` with all required variables; `.gitleaks.toml` secret scanner config
 
-[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.0.0...v1.1.0
