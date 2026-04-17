@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-04-17
+
+### Added
+- **BankOffer AI** (`bankoffer` namespace) — AI-powered banking personalization platform deployed via ArgoCD multi-source Helm Application:
+  - FastAPI backend (`bankoffer-api:dev`) with DEMO_MODE, Redis cache, PostgreSQL seeded with 50 customers + 3827 transactions
+  - Bitnami PostgreSQL (imported as `bankoffer-postgresql:dev`) + Redis sub-charts
+  - Ingress at `http://bankoffer.local` via Traefik — health, offers, profiles, compliance endpoints live
+  - Source: `platform/bankoffer-platform.git` with values from `platform/gitops-infra.git/manifests/bankoffer/values.yaml`
+- **CareerForge** (`careerforge` namespace) — AI career management platform deployed via ArgoCD Kustomize Application:
+  - FastAPI backend services: admin (port 8000), employee (port 8002), coach (port 8003), ai-connector (port 8001)
+  - **Celery worker** + **Celery beat** connected to Redis — demonstrates async task pub-sub with `services.ai_connector.celery_app`
+  - pgvector PostgreSQL (pgvector/pgvector:pg16) for vector search
+  - 3 React/Vite nginx frontends (admin, coach, employee portals) at `cf-admin.local`, `cf-coach.local`, `cf-employee.local`
+  - API gateway at `cf-api.local` routing `/admin`, `/employee`, `/coach` to respective FastAPI services
+  - kustomize `landing-zone` overlay: Traefik ingress, Vault volumes removed, Ollama excluded (0 replicas), single uvicorn worker with asyncio loop
+  - Source: `platform/careerforge.git/kustomize/overlays/landing-zone`
+- ArgoCD repo credentials for `bankoffer-platform` and `careerforge` repos in `manifests/argocd/values.yaml`
+- `/etc/hosts` entries: `bankoffer.local`, `cf-api.local`, `cf-admin.local`, `cf-coach.local`, `cf-employee.local` → 127.0.0.1
+
+### Key Invariants Discovered
+- **Bitnami Docker Hub images removed** — generic `:16` tags gone; must pre-pull from `registry-1.docker.io/bitnami/postgresql:latest` and import to k3d as local image
+- **Careerforge nginx portals listen on 8080** (not 80) — service `targetPort` must match
+- **k3d stdin image import unreliable** — use `docker exec -i <node> ctr images import -` per-node loop instead
+- **MetalLB IPs not routable from WSL host** — all `/etc/hosts` entries must use `127.0.0.1` (tunneled through Docker port mapping)
+- **BankOffer NetworkPolicy hardcoded for ingress-nginx** — disabled for landing zone (Traefik is in kube-system)
+
+---
+
 ## [1.1.1] — 2026-04-17
 
 ### Added
@@ -87,7 +115,8 @@ Initial release of the GitOps Landing Zone.
 - **12 reusable skills**: `/kubectl-status`, `/argocd-sync`, `/docker-build-import`, `/helm-validate`, `/kubeseal-secret`, `/bootstrap-phase`, `/gitea-api`, `/keycloak-admin`, `/kustomize-build`, `/grafana-dashboard`, `/cluster-health`, `/netpol-test`
 - `.env.example` with all required variables; `.gitleaks.toml` secret scanner config
 
-[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bogdandragosvasile/gitops-landing-zone/releases/tag/v1.0.0
