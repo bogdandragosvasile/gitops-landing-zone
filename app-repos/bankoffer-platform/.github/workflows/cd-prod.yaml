@@ -1,0 +1,54 @@
+name: CD — Deploy to Production
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-prod:
+    name: ArgoCD Sync to Production
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ vars.ARGOCD_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract tag version
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login "${{ secrets.ARGOCD_SERVER }}" \
+            --username "${{ secrets.ARGOCD_USERNAME }}" \
+            --password "${{ secrets.ARGOCD_PASSWORD }}" \
+            --grpc-web
+
+      - name: Sync production applications (prod overlay)
+        run: |
+          argocd app sync bankoffer-prod \
+            --revision "${{ steps.tag.outputs.version }}" \
+            --prune \
+            --grpc-web
+
+      - name: Wait for healthy state
+        run: |
+          argocd app wait bankoffer-prod \
+            --timeout 600 \
+            --health \
+            --grpc-web
+
+      - name: Verify production deployment
+        run: |
+          argocd app get bankoffer-prod --grpc-web
+          echo "Production deployment completed for tag ${{ steps.tag.outputs.version }}"

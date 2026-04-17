@@ -70,6 +70,15 @@ else
 ${METALLB_IP_START} keycloak.local
 ${METALLB_IP_START} argocd.local
 ${METALLB_IP_START} gitea.local
+${METALLB_IP_START} portal.local
+${METALLB_IP_START} grafana.local
+${METALLB_IP_START} prometheus.local
+${METALLB_IP_START} bankoffer.local
+${METALLB_IP_START} bankoffer-slides.local
+${METALLB_IP_START} cf-admin.local
+${METALLB_IP_START} cf-coach.local
+${METALLB_IP_START} cf-employee.local
+${METALLB_IP_START} cf-slides.local
 "
   # Write patch file to avoid shell escaping issues
   PATCH_FILE="/tmp/coredns-patch.yaml"

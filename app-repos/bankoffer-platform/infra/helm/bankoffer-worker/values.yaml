@@ -1,0 +1,99 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/ptx37/bankoffer-worker
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 9090
+  initialDelaySeconds: 30
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 9090
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+env:
+  - name: APP_ENV
+    value: staging
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: bankoffer-db-credentials
+        key: url
+  - name: KAFKA_BOOTSTRAP_SERVERS
+    valueFrom:
+      configMapKeyRef:
+        name: bankoffer-kafka-config
+        key: bootstrap-servers
+  - name: KAFKA_CONSUMER_GROUP
+    value: bankoffer-ml-worker
+  - name: KAFKA_TOPICS
+    value: "bank.transactions,offer.events"
+  - name: MODEL_CACHE_DIR
+    value: /tmp/models
+  - name: LOG_LEVEL
+    value: info
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - bankoffer-worker
+          topologyKey: kubernetes.io/hostname

@@ -1,0 +1,92 @@
+# A/B testing configuration for Bank Offering AI
+# Defines experiments comparing different scoring strategies.
+
+experiments:
+  ml_scoring_vs_rules:
+    name: "ML Scoring vs Rule-Based Scoring"
+    description: >
+      Compares the ML-based product scoring model against the baseline
+      rule-based scoring engine.  The ML variant uses the trained
+      offer_scoring_model from MLflow to predict acceptance probability,
+      while the control uses static business-rule weights.
+    status: active
+    start_date: "2026-04-01"
+    end_date: null  # runs until manually stopped or significance reached
+
+    variants:
+      control:
+        name: "rule_based_scoring"
+        description: "Baseline rule-based scoring with static product-segment weights"
+        scoring_engine: "services.worker.scorer_rules"
+        weight: 0.50
+
+      treatment:
+        name: "ml_scoring"
+        description: "ML model scoring via offer_scoring_model (logistic regression)"
+        scoring_engine: "services.worker.scorer"
+        model_name: "offer_scoring_model"
+        model_stage: "Production"
+        weight: 0.50
+
+    traffic_split:
+      method: "customer_id_hash"
+      hash_salt: "ml_scoring_exp_v1"
+      control_percentage: 50
+      treatment_percentage: 50
+
+    success_metrics:
+      primary:
+        name: "offer_acceptance_rate"
+        description: "Fraction of presented offers that customers accept"
+        type: "ratio"
+        numerator: "offers_accepted"
+        denominator: "offers_presented"
+
+      secondary:
+        - name: "offer_click_through_rate"
+          description: "Fraction of offers where the CTA was clicked"
+          type: "ratio"
+          numerator: "cta_clicks"
+          denominator: "offers_presented"
+
+        - name: "time_to_acceptance"
+          description: "Median time from offer delivery to acceptance"
+          type: "duration"
+          unit: "hours"
+
+        - name: "revenue_per_offer"
+          description: "Average estimated revenue from accepted offers"
+          type: "monetary"
+          currency: "USD"
+
+    guardrail_metrics:
+      - name: "offer_fatigue_rate"
+        description: "Fraction of customers dismissing 3+ consecutive offers"
+        threshold_max: 0.15
+        action: "alert"
+
+      - name: "scoring_latency_p99"
+        description: "99th percentile scoring latency"
+        threshold_max_ms: 500
+        action: "alert"
+
+    statistical_parameters:
+      minimum_sample_size: 5000
+      minimum_sample_size_per_variant: 2500
+      significance_level: 0.05
+      power: 0.80
+      minimum_detectable_effect: 0.02  # 2 percentage points
+      test_type: "two_sided"
+      correction_method: "bonferroni"
+
+    assignment:
+      unit: "customer_id"
+      sticky: true  # customer stays in same variant for experiment duration
+      exclusions:
+        - experiment: "notification_channel_test"
+          reason: "Avoid interaction effects with notification experiments"
+
+    logging:
+      events_topic: "ab_test.events"
+      assignments_topic: "ab_test.assignments"
+      metrics_table: "analytics.ab_test_metrics"

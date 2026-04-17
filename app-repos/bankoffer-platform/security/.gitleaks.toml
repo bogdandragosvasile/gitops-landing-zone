@@ -1,0 +1,69 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-[a-zA-Z0-9\-_]{40,}'''
+tags = ["anthropic", "api-key"]
+severity = "CRITICAL"
+
+[[rules]]
+id = "anthropic-api-key-alt"
+description = "Anthropic API Key (alternative pattern)"
+regex = '''ANTHROPIC_API_KEY\s*=\s*["\']?sk-ant-[a-zA-Z0-9\-_]+'''
+tags = ["anthropic", "api-key"]
+severity = "CRITICAL"
+
+[[rules]]
+id = "sendgrid-api-key"
+description = "SendGrid API Key"
+regex = '''SG\.[a-zA-Z0-9\-_]{22}\.[a-zA-Z0-9\-_]{43}'''
+tags = ["sendgrid", "api-key"]
+severity = "HIGH"
+
+[[rules]]
+id = "fcm-server-key"
+description = "Firebase/FCM Server Key"
+regex = '''AAAA[a-zA-Z0-9_\-]{7}:[a-zA-Z0-9_\-]{140}'''
+tags = ["firebase", "fcm", "api-key"]
+severity = "HIGH"
+
+[[rules]]
+id = "postgres-connection-string"
+description = "PostgreSQL Connection String with credentials"
+regex = '''postgresql://[^:]+:[^@]+@'''
+tags = ["database", "credentials"]
+severity = "CRITICAL"
+
+[[rules]]
+id = "jwt-secret"
+description = "Hardcoded JWT Secret"
+regex = '''JWT_SECRET\s*=\s*["\'][^"\']{16,}["\']'''
+tags = ["jwt", "secret"]
+severity = "CRITICAL"
+
+[[rules]]
+id = "pagerduty-key"
+description = "PagerDuty Integration Key"
+regex = '''[a-f0-9]{32}'''
+path = '''alertmanager'''
+tags = ["pagerduty", "api-key"]
+severity = "HIGH"
+
+[allowlist]
+description = "Allowlist for test/example values"
+regexes = [
+  '''example\.com''',
+  '''localhost''',
+  '''127\.0\.0\.1''',
+  '''your-.*-here''',
+  '''\$\{[A-Z_]+\}''',
+  '''<[A-Z_]+>''',
+]
+paths = [
+  '''tests/.*''',
+  '''docs/.*''',
+  '''.*_test\.py''',
+  '''.*\.md''',
+]

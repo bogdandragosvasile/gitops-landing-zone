@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareerForge — Demo Accounts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cf-red: #E63946;
+  --cf-blue: #1D3557;
+  --cf-blue-mid: #457B9D;
+  --cf-yellow: #F4D35E;
+  --cf-white: #F1FAEE;
+  --cf-black: #0D1B2A;
+  --cf-gray-100: #E8ECEF;
+  --cf-gray-300: #B8C0C7;
+  --cf-gray-500: #6B757D;
+  --cf-gray-700: #3A4147;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--cf-white);
+  color: var(--cf-black);
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.topbar {
+  background: var(--cf-blue);
+  border-bottom: 4px solid var(--cf-red);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.topbar-brand {
+  font-weight: 900;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--cf-white);
+}
+.topbar-brand span { color: var(--cf-yellow); }
+.topbar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.topbar-nav a {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cf-white);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+.topbar-nav a:hover { border-color: var(--cf-yellow); color: var(--cf-yellow); }
+.topbar-nav a.active { background: var(--cf-yellow); color: var(--cf-black); border-color: var(--cf-yellow); }
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--cf-white);
+  background: var(--cf-red);
+  padding: 4px 10px;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-weight: 900;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--cf-blue);
+  margin-bottom: 0.5rem;
+}
+h2 {
+  font-weight: 900;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--cf-blue);
+  margin: 2.5rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--cf-black);
+}
+
+.lead {
+  font-size: 1.05rem;
+  color: var(--cf-gray-700);
+  margin-bottom: 1.5rem;
+  line-height: 1.65;
+}
+
+.banner {
+  border: 2px solid var(--cf-black);
+  background: var(--cf-yellow);
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.banner-key {
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cf-black);
+}
+.banner-val {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  background: var(--cf-black);
+  color: var(--cf-yellow);
+  padding: 4px 10px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card {
+  border: 2px solid var(--cf-black);
+  background: var(--cf-white);
+  padding: 1rem 0.75rem;
+  text-align: center;
+}
+.summary-num {
+  font-weight: 900;
+  font-size: 2rem;
+  color: var(--cf-red);
+  line-height: 1;
+}
+.summary-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cf-gray-500);
+  margin-top: 0.4rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 1rem;
+  font-size: 0.86rem;
+}
+th {
+  font-weight: 900;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cf-white);
+  background: var(--cf-blue);
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border: 2px solid var(--cf-black);
+}
+td {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--cf-black);
+  color: var(--cf-gray-700);
+  background: var(--cf-white);
+  vertical-align: top;
+}
+td.username {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  color: var(--cf-blue);
+  background: var(--cf-gray-100);
+}
+tr.manager td.username { background: var(--cf-yellow); color: var(--cf-black); }
+tr.manager td:nth-child(2) { font-weight: 700; color: var(--cf-red); }
+
+.legend { display: flex; gap: 1.5rem; margin: 1rem 0; font-size: 0.78rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; }
+.legend-swatch { width: 16px; height: 16px; border: 2px solid var(--cf-black); }
+.legend-swatch.manager { background: var(--cf-yellow); }
+.legend-swatch.normal { background: var(--cf-gray-100); }
+
+.footer {
+  border-top: 2px solid var(--cf-black);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--cf-gray-500);
+  background: var(--cf-gray-100);
+}
+
+@media (max-width: 720px) {
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">Career<span>Forge</span></div>
+  <nav class="topbar-nav">
+    <a href="index.html">Slides</a>
+    <a href="manual.html">Manual</a>
+    <a href="users.html" class="active">Demo Accounts</a>
+    <a href="http://cf-employee.local">Employee Portal</a>
+    <a href="http://cf-coach.local">Coach Portal</a>
+    <a href="http://cf-admin.local">Admin Portal</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <span class="eyebrow">Demo Environment</span>
+  <h1>Demo Accounts</h1>
+  <p class="lead">Every account in the CareerForge demo. Pick a username matching the persona you want to explore. All passwords are identical.</p>
+
+  <div class="banner">
+    <span class="banner-key">All passwords:</span>
+    <span class="banner-val">Test1234!</span>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="summary-num">91</div><div class="summary-label">Total users</div></div>
+    <div class="summary-card"><div class="summary-num">81</div><div class="summary-label">Employees</div></div>
+    <div class="summary-card"><div class="summary-num">6</div><div class="summary-label">Coaches</div></div>
+    <div class="summary-card"><div class="summary-num">4</div><div class="summary-label">Admins</div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch normal"></span> Standard employee</div>
+    <div class="legend-item"><span class="legend-swatch manager"></span> Manager (has My Team tab)</div>
+  </div>
+
+  <h2>Employee Portal &mdash; Named Personas</h2>
+  <p>Realistic personas across all OUs. Use these to explore the day-in-the-life experience of an IT outsourcing organisation. Five accounts have the <code>manager</code> role and unlock the My Team tab.</p>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th><th>OU</th></tr></thead>
+    <tbody>
+      <tr><td class="username">alice.johnson</td><td>Junior Frontend Developer</td><td>Engineering</td></tr>
+      <tr><td class="username">bob.smith</td><td>Senior Backend Engineer</td><td>Engineering</td></tr>
+      <tr><td class="username">carol.white</td><td>Full Stack Developer</td><td>Engineering</td></tr>
+      <tr><td class="username">david.brown</td><td>Mobile Developer</td><td>Engineering</td></tr>
+      <tr class="manager"><td class="username">ethan.moore</td><td>VP Engineering &middot; 35 reports</td><td>Engineering</td></tr>
+      <tr class="manager"><td class="username">fiona.taylor</td><td>VP Data Science &middot; 12 reports</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">grace.chen</td><td>Data Engineer</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">henry.kim</td><td>ML Engineer</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">isabelle.patel</td><td>Data Scientist</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">james.wang</td><td>AI/LLM Engineer</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">kate.nguyen</td><td>Cloud Engineer</td><td>Infrastructure</td></tr>
+      <tr><td class="username">liam.garcia</td><td>Cloud Architect</td><td>Infrastructure</td></tr>
+      <tr><td class="username">mia.rodriguez</td><td>DBA</td><td>Infrastructure</td></tr>
+      <tr><td class="username">noah.martinez</td><td>Network Engineer</td><td>Infrastructure</td></tr>
+      <tr><td class="username">olivia.clark</td><td>DevOps Engineer</td><td>Platform/SRE</td></tr>
+      <tr><td class="username">peter.lewis</td><td>SRE</td><td>Platform/SRE</td></tr>
+      <tr><td class="username">quinn.hall</td><td>Platform Engineer</td><td>Platform/SRE</td></tr>
+      <tr><td class="username">rachel.young</td><td>Security Engineer</td><td>Security</td></tr>
+      <tr><td class="username">samuel.allen</td><td>Penetration Tester</td><td>Security</td></tr>
+      <tr><td class="username">tina.scott</td><td>SOC Analyst</td><td>Security</td></tr>
+      <tr><td class="username">umar.adams</td><td>QA Automation Engineer</td><td>QA</td></tr>
+      <tr><td class="username">vera.baker</td><td>Performance Test Engineer</td><td>QA</td></tr>
+      <tr><td class="username">william.turner</td><td>Scrum Master</td><td>PMO</td></tr>
+      <tr class="manager"><td class="username">xena.phillips</td><td>Tech Lead &middot; 8 reports</td><td>PMO</td></tr>
+      <tr class="manager"><td class="username">yusuf.campbell</td><td>Delivery Manager &middot; 6 reports</td><td>PMO</td></tr>
+      <tr><td class="username">zara.mitchell</td><td>Business Analyst</td><td>PMO</td></tr>
+      <tr><td class="username">alex.roberts</td><td>Solutions Architect</td><td>Architecture</td></tr>
+      <tr><td class="username">bella.carter</td><td>Product Owner</td><td>Product</td></tr>
+      <tr><td class="username">chris.evans</td><td>IT Support</td><td>Operations</td></tr>
+      <tr><td class="username">diana.morgan</td><td>SysAdmin</td><td>Operations</td></tr>
+      <tr class="manager"><td class="username">edward.hughes</td><td>VP Security &middot; 10 reports</td><td>Security/Leadership</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Employee Portal &mdash; Seniority Ladder</h2>
+  <p>Fifty additional accounts that span every IC seniority level (junior &rarr; principal) across ten specialisations. Useful for exploring how the readiness scoring varies by seniority.</p>
+  <table>
+    <thead><tr><th>Specialisation</th><th>Junior</th><th>Mid</th><th>Senior</th><th>Lead</th><th>Principal</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Frontend</strong></td><td class="username">junior.frontend.dev</td><td class="username">mid.frontend.dev</td><td class="username">senior.frontend.dev</td><td class="username">lead.frontend.dev</td><td class="username">principal.frontend.dev</td></tr>
+      <tr><td><strong>Backend</strong></td><td class="username">junior.backend.eng</td><td class="username">mid.backend.eng</td><td class="username">senior.backend.eng</td><td class="username">lead.backend.eng</td><td class="username">principal.backend.eng</td></tr>
+      <tr><td><strong>Full Stack</strong></td><td class="username">junior.fullstack.dev</td><td class="username">mid.fullstack.dev</td><td class="username">senior.fullstack.dev</td><td class="username">lead.fullstack.dev</td><td class="username">principal.fullstack.dev</td></tr>
+      <tr><td><strong>Mobile</strong></td><td class="username">junior.mobile.dev</td><td class="username">mid.mobile.dev</td><td class="username">senior.mobile.dev</td><td class="username">lead.mobile.dev</td><td class="username">principal.mobile.dev</td></tr>
+      <tr><td><strong>Data Eng</strong></td><td class="username">junior.data.eng</td><td class="username">mid.data.eng</td><td class="username">senior.data.eng</td><td class="username">lead.data.eng</td><td class="username">principal.data.eng</td></tr>
+      <tr><td><strong>ML Eng</strong></td><td class="username">junior.ml.eng</td><td class="username">mid.ml.eng</td><td class="username">senior.ml.eng</td><td class="username">lead.ml.eng</td><td class="username">principal.ml.eng</td></tr>
+      <tr><td><strong>Cloud</strong></td><td class="username">junior.cloud.eng</td><td class="username">mid.cloud.eng</td><td class="username">senior.cloud.eng</td><td class="username">lead.cloud.eng</td><td class="username">principal.cloud.eng</td></tr>
+      <tr><td><strong>DevOps</strong></td><td class="username">junior.devops.eng</td><td class="username">mid.devops.eng</td><td class="username">senior.devops.eng</td><td class="username">lead.devops.eng</td><td class="username">principal.devops.eng</td></tr>
+      <tr><td><strong>Security</strong></td><td class="username">junior.security.eng</td><td class="username">mid.security.eng</td><td class="username">senior.security.eng</td><td class="username">lead.security.eng</td><td class="username">principal.security.eng</td></tr>
+      <tr><td><strong>QA</strong></td><td class="username">junior.qa.eng</td><td class="username">mid.qa.eng</td><td class="username">senior.qa.eng</td><td class="username">lead.qa.eng</td><td class="username">principal.qa.eng</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Coach Portal</h2>
+  <p>Six coaches, one per OU specialty. Log in at <a href="http://cf-coach.local" style="color: var(--cf-blue); font-weight: 700;">cf-coach.local</a>.</p>
+  <table>
+    <thead><tr><th>Username</th><th>OU Specialty</th></tr></thead>
+    <tbody>
+      <tr><td class="username">coach.engineering</td><td>Software Engineering</td></tr>
+      <tr><td class="username">coach.data</td><td>Data &amp; AI</td></tr>
+      <tr><td class="username">coach.cloud</td><td>Cloud &amp; Infrastructure</td></tr>
+      <tr><td class="username">coach.security</td><td>Security</td></tr>
+      <tr><td class="username">coach.pmo</td><td>PMO &amp; Delivery</td></tr>
+      <tr><td class="username">coach.leadership</td><td>Leadership &amp; Management</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Admin Portal</h2>
+  <p>Four administrators with different operational scopes. Log in at <a href="http://cf-admin.local" style="color: var(--cf-blue); font-weight: 700;">cf-admin.local</a>.</p>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td class="username">admin.hr</td><td>HR Administrator</td></tr>
+      <tr><td class="username">admin.platform</td><td>Platform Administrator</td></tr>
+      <tr><td class="username">admin.org</td><td>Org Administrator</td></tr>
+      <tr><td class="username">admin.lnd</td><td>L&amp;D Administrator</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top: 3rem; text-align: center;">
+    <a href="index.html" style="display: inline-block; padding: 10px 18px; background: var(--cf-blue); color: var(--cf-white); border: 2px solid var(--cf-blue); text-decoration: none; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em;">&larr; Back to Slides</a>
+    &nbsp;
+    <a href="manual.html" style="display: inline-block; padding: 10px 18px; background: var(--cf-red); color: var(--cf-white); border: 2px solid var(--cf-red); text-decoration: none; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em;">User Manual</a>
+  </p>
+
+</main>
+
+<footer class="footer">
+  CareerForge &middot; A GitOps-Native HR Intelligence Platform &middot; Demo Environment
+</footer>
+
+</body>
+</html>

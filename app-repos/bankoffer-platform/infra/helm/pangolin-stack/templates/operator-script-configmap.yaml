@@ -1,0 +1,384 @@
+{{- if .Values.operator.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pangolin-stack.fullname" . }}-operator-script
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pangolin-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: operator
+data:
+  pangolin_operator.py: |
+    #!/usr/bin/env python3
+    """
+    Pangolin DNS Operator
+    =====================
+    Watches Kubernetes Ingress objects cluster-wide and for each Ingress
+    annotated with `pangolin.io/expose: "true"` it:
+
+      1. Creates a Pangolin HTTP resource (sso=false, public) that routes
+         the hostname to ingress-nginx ClusterIP via the WireGuard site.
+      2. Creates a Cloudflare CNAME  <hostname> → TUNNEL_DOMAIN  so that
+         external DNS resolves to the Pangolin/Traefik endpoint.
+
+    TLS is handled automatically by Traefik on the Pangolin server using
+    Cloudflare DNS-01 ACME (no cert-manager needed inside the cluster).
+
+    Removal: when an Ingress loses the annotation or is deleted, the
+    corresponding Pangolin resource and Cloudflare CNAME are removed.
+
+    Environment variables (all required unless noted):
+      PANGOLIN_URL          - e.g. https://pangolin.lupulup.com
+      PANGOLIN_EMAIL        - Pangolin admin email
+      PANGOLIN_PASSWORD     - Pangolin admin password
+      PANGOLIN_ORG_ID       - org slug, e.g. "lupulup"
+      PANGOLIN_SITE_ID      - numeric string, e.g. "8"
+      PANGOLIN_DOMAIN_ID    - Pangolin domain config key, e.g. "domain1"
+      TUNNEL_DOMAIN         - CNAME target, e.g. pangolin.lupulup.com
+      INGRESS_TARGET_IP     - ingress-nginx ClusterIP
+      INGRESS_TARGET_PORT   - (default: 80)
+      CF_API_TOKEN          - Cloudflare API token with dns:edit scope
+      CF_ZONE_ID            - Cloudflare zone ID for the domain
+      EXPOSE_ANNOTATION     - annotation key (default: pangolin.io/expose)
+      RECONCILE_INTERVAL    - seconds between full reconcile passes (default: 60)
+      LOG_LEVEL             - (default: INFO)
+    """
+
+    import logging
+    import os
+    import time
+
+    import requests
+    from kubernetes import client, config, watch
+
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO"),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    log = logging.getLogger("pangolin-operator")
+
+    # ---------------------------------------------------------------------------
+    # Configuration
+    # ---------------------------------------------------------------------------
+    PANGOLIN_URL        = os.environ["PANGOLIN_URL"]
+    PANGOLIN_EMAIL      = os.environ["PANGOLIN_EMAIL"]
+    PANGOLIN_PASSWORD   = os.environ["PANGOLIN_PASSWORD"]
+    PANGOLIN_ORG_ID     = os.environ["PANGOLIN_ORG_ID"]
+    PANGOLIN_SITE_ID    = os.environ["PANGOLIN_SITE_ID"]
+    PANGOLIN_DOMAIN_ID  = os.environ.get("PANGOLIN_DOMAIN_ID", "domain1")
+    TUNNEL_DOMAIN       = os.environ.get("TUNNEL_DOMAIN", "pangolin.lupulup.com")
+    INGRESS_TARGET_IP   = os.environ["INGRESS_TARGET_IP"]
+    INGRESS_TARGET_PORT = int(os.environ.get("INGRESS_TARGET_PORT", "80"))
+    CF_API_TOKEN        = os.environ["CF_API_TOKEN"]
+    CF_ZONE_ID          = os.environ["CF_ZONE_ID"]
+    EXPOSE_ANNOTATION   = os.environ.get("EXPOSE_ANNOTATION", "pangolin.io/expose")
+    RECONCILE_INTERVAL  = int(os.environ.get("RECONCILE_INTERVAL", "60"))
+
+    CF_BASE = "https://api.cloudflare.com/client/v4"
+
+    # Pangolin uses a fixed custom-header CSRF token for all API calls.
+    CSRF_HEADER = {"X-CSRF-Token": "x-csrf-protection"}
+
+
+    # ---------------------------------------------------------------------------
+    # Pangolin API client
+    # ---------------------------------------------------------------------------
+    class PangolinClient:
+        def __init__(self):
+            self.http = requests.Session()
+            self.http.headers.update({"Content-Type": "application/json"})
+            self.http.headers.update(CSRF_HEADER)
+            self._login()
+
+        def _login(self):
+            """Login with retry/backoff. Pangolin uses cookie-based sessions."""
+            for attempt in range(10):
+                r = self.http.post(
+                    f"{PANGOLIN_URL}/api/v1/auth/login",
+                    json={"email": PANGOLIN_EMAIL, "password": PANGOLIN_PASSWORD},
+                    timeout=15,
+                )
+                if r.status_code == 429:
+                    wait = 30 * (attempt + 1)
+                    log.warning("Login rate-limited; retrying in %ds", wait)
+                    time.sleep(wait)
+                    continue
+                r.raise_for_status()
+                # Session stored automatically via requests.Session cookie jar.
+                log.info("Authenticated with Pangolin at %s", PANGOLIN_URL)
+                return
+            raise RuntimeError("Pangolin login failed after 10 retries (rate limited)")
+
+        def list_resources(self) -> dict:
+            """Returns {fullDomain: resourceId} for all resources in the org."""
+            r = self.http.get(
+                f"{PANGOLIN_URL}/api/v1/org/{PANGOLIN_ORG_ID}/resources",
+                timeout=15,
+            )
+            r.raise_for_status()
+            items = r.json().get("data", {}).get("resources", [])
+            result = {}
+            for item in items:
+                domain = item.get("fullDomain") or item.get("subdomain") or ""
+                rid = str(item.get("resourceId") or "")
+                if domain and rid:
+                    result[domain] = rid
+            return result
+
+        def create_resource(self, hostname: str) -> str:
+            """Creates a public HTTP resource and its target; returns resourceId."""
+            # Step 1: create the resource — only accepted fields per Pangolin 1.16 API
+            payload = {
+                "name": hostname,
+                "subdomain": hostname.split(".")[0],
+                "domainId": PANGOLIN_DOMAIN_ID,
+                "http": True,
+                "protocol": "tcp",
+            }
+            r = self.http.put(
+                f"{PANGOLIN_URL}/api/v1/org/{PANGOLIN_ORG_ID}/resource",
+                json=payload,
+                timeout=15,
+            )
+            if not r.ok:
+                log.error("Pangolin create_resource failed %s: %s", r.status_code, r.text)
+            r.raise_for_status()
+            resp = r.json().get("data", {})
+            resource = resp.get("resource", resp)
+            rid = str(resource.get("resourceId") or resource.get("id") or "")
+            log.info("Created Pangolin resource '%s' id=%s", hostname, rid)
+
+            # Step 2: disable SSO — resource must be publicly accessible (no auth wall)
+            patch = self.http.post(
+                f"{PANGOLIN_URL}/api/v1/resource/{rid}",
+                json={"sso": False, "ssl": True},
+                timeout=15,
+            )
+            if patch.ok:
+                log.info("Set sso=false on resource %s", rid)
+            else:
+                log.warning("Could not patch sso on resource %s: %s %s", rid, patch.status_code, patch.text)
+
+            # Step 3: add target pointing to ingress-nginx via the WireGuard site
+            target_payload = {
+                "siteId": int(PANGOLIN_SITE_ID),
+                "ip": INGRESS_TARGET_IP,
+                "port": INGRESS_TARGET_PORT,
+                "method": "http",
+                "enabled": True,
+            }
+            rt = self.http.put(
+                f"{PANGOLIN_URL}/api/v1/resource/{rid}/target",
+                json=target_payload,
+                timeout=15,
+            )
+            if not rt.ok:
+                log.warning("Pangolin add_target failed %s: %s", rt.status_code, rt.text)
+            else:
+                log.info("Added target %s:%s to resource %s", INGRESS_TARGET_IP, INGRESS_TARGET_PORT, rid)
+
+            return rid
+
+        def delete_resource(self, resource_id: str):
+            r = self.http.delete(
+                f"{PANGOLIN_URL}/api/v1/resource/{resource_id}",
+                timeout=15,
+            )
+            if r.ok:
+                log.info("Deleted Pangolin resource id=%s", resource_id)
+            else:
+                log.warning("Pangolin delete %s → %s: %s", resource_id, r.status_code, r.text)
+
+
+    # ---------------------------------------------------------------------------
+    # Cloudflare API client
+    # ---------------------------------------------------------------------------
+    class CloudflareClient:
+        def __init__(self):
+            self.http = requests.Session()
+            self.http.headers.update({
+                "Authorization": f"Bearer {CF_API_TOKEN}",
+                "Content-Type": "application/json",
+            })
+
+        def _records_url(self):
+            return f"{CF_BASE}/zones/{CF_ZONE_ID}/dns_records"
+
+        def _get_cname_id(self, name: str) -> str | None:
+            r = self.http.get(
+                self._records_url(),
+                params={"name": name, "type": "CNAME"},
+                timeout=15,
+            )
+            r.raise_for_status()
+            results = r.json().get("result", [])
+            return results[0]["id"] if results else None
+
+        def create_cname(self, name: str, target: str):
+            if self._get_cname_id(name):
+                log.debug("Cloudflare CNAME '%s' already exists, skipping", name)
+                return
+            payload = {
+                "type": "CNAME",
+                "name": name,
+                "content": target,
+                "ttl": 1,      # TTL=1 means "auto" in Cloudflare
+                "proxied": False,  # Do NOT proxy — Pangolin/Traefik handles TLS
+            }
+            r = self.http.post(self._records_url(), json=payload, timeout=15)
+            if not r.ok:
+                log.error(
+                    "Cloudflare create_cname '%s' failed %s: %s",
+                    name, r.status_code, r.text,
+                )
+            r.raise_for_status()
+            log.info("Created Cloudflare CNAME %s → %s", name, target)
+
+        def delete_cname(self, name: str):
+            record_id = self._get_cname_id(name)
+            if not record_id:
+                return
+            r = self.http.delete(
+                f"{self._records_url()}/{record_id}", timeout=15
+            )
+            if r.ok:
+                log.info("Deleted Cloudflare CNAME '%s'", name)
+            else:
+                log.warning(
+                    "Cloudflare delete '%s' → %s: %s", name, r.status_code, r.text
+                )
+
+
+    # ---------------------------------------------------------------------------
+    # Helpers
+    # ---------------------------------------------------------------------------
+    def exposed_hosts(ingress) -> list:
+        """Return hostnames from an Ingress that has the expose annotation."""
+        ann = ingress.metadata.annotations or {}
+        if ann.get(EXPOSE_ANNOTATION, "").lower() != "true":
+            return []
+        return [
+            rule.host
+            for rule in (ingress.spec.rules or [])
+            if rule.host
+        ]
+
+
+    # ---------------------------------------------------------------------------
+    # Operator
+    # ---------------------------------------------------------------------------
+    class Operator:
+        def __init__(self):
+            try:
+                config.load_incluster_config()
+            except config.ConfigException:
+                config.load_kube_config()
+            self.k8s = client.NetworkingV1Api()
+            self.pangolin = PangolinClient()
+            self.cf = CloudflareClient()
+            # In-memory state: hostname → pangolin resourceId
+            self.published: dict = {}
+
+        # ------------------------------------------------------------------
+        def reconcile(self):
+            """Full reconciliation: ensure Pangolin+CF match Ingress desired state."""
+            desired: set = set()
+            try:
+                ingresses = self.k8s.list_ingress_for_all_namespaces()
+                for ing in ingresses.items:
+                    for host in exposed_hosts(ing):
+                        desired.add(host)
+            except Exception as exc:
+                log.error("Failed to list ingresses: %s", exc)
+                return
+
+            # Fetch existing Pangolin resources to avoid duplicates
+            try:
+                existing = self.pangolin.list_resources()
+            except Exception as exc:
+                log.error("Failed to list Pangolin resources: %s", exc)
+                self._try_relogin()
+                return
+
+            # Add missing resources
+            for host in desired:
+                if host not in self.published:
+                    if host in existing:
+                        log.info("Adopting existing Pangolin resource for '%s'", host)
+                        self.published[host] = existing[host]
+                    else:
+                        self._publish(host)
+
+            # Remove stale resources (hosts that no longer have the annotation)
+            stale = set(self.published) - desired
+            for host in stale:
+                self._unpublish(host)
+
+        def _publish(self, host: str):
+            try:
+                rid = self.pangolin.create_resource(host)
+                self.cf.create_cname(host, TUNNEL_DOMAIN)
+                self.published[host] = rid
+            except Exception as exc:
+                log.error("Failed to publish '%s': %s", host, exc)
+
+        def _unpublish(self, host: str):
+            try:
+                rid = self.published.pop(host, None)
+                if rid:
+                    self.pangolin.delete_resource(rid)
+                self.cf.delete_cname(host)
+            except Exception as exc:
+                log.error("Failed to unpublish '%s': %s", host, exc)
+
+        def _try_relogin(self):
+            try:
+                self.pangolin._login()
+            except Exception as exc:
+                log.error("Re-login to Pangolin failed: %s", exc)
+
+        # ------------------------------------------------------------------
+        def run(self):
+            log.info(
+                "Pangolin DNS Operator starting — watching Ingresses for annotation '%s'",
+                EXPOSE_ANNOTATION,
+            )
+            self.reconcile()
+
+            w = watch.Watch()
+            while True:
+                try:
+                    ings = self.k8s.list_ingress_for_all_namespaces()
+                    rv = ings.metadata.resource_version
+
+                    for event in w.stream(
+                        self.k8s.list_ingress_for_all_namespaces,
+                        resource_version=rv,
+                        timeout_seconds=RECONCILE_INTERVAL,
+                    ):
+                        etype = event["type"]
+                        ing = event["object"]
+                        hosts = exposed_hosts(ing)
+
+                        if etype in ("ADDED", "MODIFIED"):
+                            for host in hosts:
+                                if host not in self.published:
+                                    self._publish(host)
+
+                        elif etype == "DELETED":
+                            for host in hosts:
+                                if host in self.published:
+                                    self._unpublish(host)
+
+                    # After watch timeout, do a full reconcile pass
+                    self.reconcile()
+
+                except Exception as exc:
+                    log.error("Watch loop error: %s — reconnecting in 15s", exc)
+                    time.sleep(15)
+                    self._try_relogin()
+
+
+    if __name__ == "__main__":
+        Operator().run()
+{{- end }}

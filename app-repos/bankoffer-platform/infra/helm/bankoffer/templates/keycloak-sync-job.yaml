@@ -1,0 +1,155 @@
+{{- if .Values.keycloakSync.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "bankoffer.fullname" . }}-kc-sync
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bankoffer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak-sync
+  annotations:
+    # Run after every install and upgrade so redirect URIs stay in sync
+    # with whatever ingress hostnames are configured.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "bankoffer.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: keycloak-sync
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kc-sync
+          image: python:3.12-slim
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KC_URL
+              value: {{ .Values.keycloakSync.url | quote }}
+            - name: KC_REALM
+              value: {{ .Values.keycloakSync.realm | quote }}
+            - name: KC_CLIENT_ID
+              value: {{ .Values.keycloakSync.clientId | quote }}
+            - name: KC_ADMIN_USER
+              value: {{ .Values.keycloakSync.adminUser | quote }}
+            - name: KC_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloakSync.existingSecret | default (printf "%s-kc-sync" (include "bankoffer.fullname" .)) }}
+                  key: adminPassword
+            # Comma-separated list of hostnames this deployment exposes.
+            # The job will ensure redirect/webOrigins/post-logout URIs for
+            # all these hosts are present in the Keycloak client — without
+            # removing any existing URIs (additive-only update).
+            - name: DEPLOY_HOSTS
+              value: "{{ .Values.ingressEmployee.host }},{{ .Values.ingressCustomer.host }}"
+          command:
+            - python3
+            - -c
+            - |
+              import os, sys, json, urllib.request, urllib.parse, urllib.error
+
+              KC_URL       = os.environ["KC_URL"].rstrip("/")
+              KC_REALM     = os.environ["KC_REALM"]
+              KC_CLIENT_ID = os.environ["KC_CLIENT_ID"]
+              ADMIN_USER   = os.environ["KC_ADMIN_USER"]
+              ADMIN_PASS   = os.environ["KC_ADMIN_PASSWORD"]
+              HOSTS        = [h.strip() for h in os.environ["DEPLOY_HOSTS"].split(",") if h.strip()]
+
+              def post(url, data, headers={}):
+                  req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(), headers=headers)
+                  with urllib.request.urlopen(req, timeout=15) as r:
+                      return json.loads(r.read())
+
+              def api(method, path, body=None, token=None):
+                  url = KC_URL + path
+                  data = json.dumps(body).encode() if body is not None else None
+                  headers = {"Content-Type": "application/json"}
+                  if token:
+                      headers["Authorization"] = "Bearer " + token
+                  req = urllib.request.Request(url, data=data, method=method, headers=headers)
+                  try:
+                      with urllib.request.urlopen(req, timeout=15) as r:
+                          raw = r.read()
+                          return json.loads(raw) if raw else None
+                  except urllib.error.HTTPError as e:
+                      print(f"HTTP {e.code} {method} {path}: {e.read().decode()}", file=sys.stderr)
+                      raise
+
+              # 1. Get admin token
+              token_data = post(
+                  f"{KC_URL}/realms/master/protocol/openid-connect/token",
+                  {"client_id": "admin-cli", "username": ADMIN_USER,
+                   "password": ADMIN_PASS, "grant_type": "password"},
+              )
+              token = token_data["access_token"]
+              print("Keycloak admin token obtained")
+
+              # 2. Find client UUID
+              clients = api("GET", f"/admin/realms/{KC_REALM}/clients?clientId={KC_CLIENT_ID}", token=token)
+              if not clients:
+                  print(f"Client '{KC_CLIENT_ID}' not found in realm '{KC_REALM}'", file=sys.stderr)
+                  sys.exit(1)
+              client = clients[0]
+              client_uuid = client["id"]
+              print(f"Found client '{KC_CLIENT_ID}' uuid={client_uuid}")
+
+              # 3. Build new URIs (additive — keep existing, add missing)
+              existing_redirect  = set(client.get("redirectUris", []))
+              existing_origins   = set(client.get("webOrigins", []))
+              logout_attr        = client.get("attributes", {}).get("post.logout.redirect.uris", "")
+              existing_logout    = set(logout_attr.split("##")) if logout_attr else set()
+
+              for host in HOSTS:
+                  existing_redirect.add(f"https://{host}/*")
+                  existing_origins.add(f"https://{host}")
+                  existing_logout.add(f"https://{host}/*")
+
+              client["redirectUris"] = sorted(existing_redirect)
+              client["webOrigins"]   = sorted(existing_origins)
+              if "attributes" not in client:
+                  client["attributes"] = {}
+              client["attributes"]["post.logout.redirect.uris"] = "##".join(sorted(existing_logout))
+
+              # 4. PUT updated client
+              api("PUT", f"/admin/realms/{KC_REALM}/clients/{client_uuid}", body=client, token=token)
+              print("Keycloak client updated successfully")
+              print("  redirectUris:", client["redirectUris"])
+              print("  webOrigins:",   client["webOrigins"])
+          resources:
+            limits:
+              cpu: 100m
+              memory: 64Mi
+            requests:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+{{- if not .Values.keycloakSync.existingSecret }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "bankoffer.fullname" . }}-kc-sync
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bankoffer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak-sync
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+type: Opaque
+stringData:
+  adminPassword: {{ .Values.keycloakSync.adminPassword | quote }}
+{{- end }}
+{{- end }}

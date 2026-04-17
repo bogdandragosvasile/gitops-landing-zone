@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BankOffer AI — Demo Accounts</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0F1623;
+  --bg-raised: #161E2E;
+  --bg-surface: #1C2537;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-primary: #E8EDF5;
+  --text-secondary: rgba(232,237,245,0.65);
+  --text-muted: rgba(232,237,245,0.4);
+  --accent: #2D5F9A;
+  --accent-mid: #5B8EC9;
+  --accent-red: #C1403D;
+  --accent-yellow: #D4A843;
+  --accent-green: #2D7D46;
+  --accent-green-mid: #4A9D64;
+  --font: 'Satoshi', system-ui, sans-serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text-primary); font-family: var(--font); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+
+.topbar {
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 0.9rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.topbar-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.topbar-brand .dot { width: 8px; height: 8px; background: var(--accent-mid); border-radius: 50%; display: inline-block; }
+.topbar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.topbar-nav a {
+  font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.topbar-nav a:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.topbar-nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+
+.page-header { margin-bottom: 3rem; }
+.eyebrow {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-mid);
+  background: rgba(91,142,201,0.12);
+  border: 1px solid rgba(91,142,201,0.25);
+  padding: 3px 10px;
+  border-radius: 3px;
+  margin-bottom: 1rem;
+}
+h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 0.6rem;
+}
+.subtitle { font-size: 1rem; color: var(--text-secondary); max-width: 600px; }
+
+.section { margin-bottom: 3rem; }
+.section-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-label .badge {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* Staff cards */
+.staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem; }
+.staff-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  padding: 1.25rem 1.5rem;
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+.staff-card:hover { border-color: var(--border-strong); }
+.staff-card-role {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
+}
+.role-admin { color: var(--accent-red); }
+.role-employee { color: var(--accent-mid); }
+.role-customer { color: var(--accent-green-mid); }
+.staff-card-name { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; }
+.cred-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.cred-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  width: 60px;
+  flex-shrink: 0;
+}
+.cred-value {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--accent-yellow);
+  background: rgba(212,168,67,0.08);
+  border: 1px solid rgba(212,168,67,0.18);
+  padding: 2px 8px;
+  border-radius: 3px;
+  word-break: break-all;
+}
+.cred-value.portal { color: var(--accent-mid); background: rgba(91,142,201,0.08); border-color: rgba(91,142,201,0.18); }
+
+/* Customer profiles table */
+.table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+thead th {
+  background: var(--bg-surface);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.id-cell { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.75rem; color: var(--text-muted); }
+.city-cell { font-weight: 500; color: var(--text-primary); }
+.income-cell { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.8rem; }
+
+.tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.tag-high { background: rgba(193,64,61,0.12); color: #D4645F; border: 1px solid rgba(193,64,61,0.2); }
+.tag-moderate { background: rgba(212,168,67,0.12); color: var(--accent-yellow); border: 1px solid rgba(212,168,67,0.2); }
+.tag-low { background: rgba(45,125,70,0.12); color: var(--accent-green-mid); border: 1px solid rgba(45,125,70,0.2); }
+.tag-strong { background: rgba(45,125,70,0.12); color: var(--accent-green-mid); border: 1px solid rgba(45,125,70,0.2); }
+.tag-stable { background: rgba(91,142,201,0.12); color: var(--accent-mid); border: 1px solid rgba(91,142,201,0.2); }
+.tag-fragile { background: rgba(193,64,61,0.12); color: #D4645F; border: 1px solid rgba(193,64,61,0.2); }
+
+.product-pill {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 1px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.notice {
+  background: rgba(91,142,201,0.08);
+  border: 1px solid rgba(91,142,201,0.2);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.notice strong { color: var(--text-primary); }
+
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="dot"></span>
+    BankOffer AI
+  </div>
+  <nav class="topbar-nav">
+    <a href="presentation.html">Slides</a>
+    <a href="users.html" class="active">Demo Accounts</a>
+    <a href="http://bankoffer.local">Employee Portal &rarr;</a>
+    <a href="http://bankoffer.local/admin">Admin Portal &rarr;</a>
+    <a href="http://bankoffer.local/docs">API Docs &rarr;</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <div class="page-header">
+    <div class="eyebrow">Demo Accounts</div>
+    <h1>BankOffer AI Users</h1>
+    <p class="subtitle">All demo credentials for local development. Staff portals use internal DB auth. Customer portal uses Keycloak SSO (<code style="font-size:0.85em;color:var(--accent-mid)">gitops</code> realm).</p>
+  </div>
+
+  <div class="notice">
+    <strong>Staff portals</strong> (Employee &amp; Admin) use direct DB login — no Keycloak required.
+    <strong>Customer portal SSO</strong> is wired to <code>http://keycloak.local/realms/gitops</code> with client <code>bankofferai-app</code>.
+    The API runs in <strong>DEMO_MODE</strong>, so all customer API calls return demo data regardless of auth state.
+  </div>
+
+  <!-- Staff Accounts -->
+  <div class="section">
+    <div class="section-label">
+      Staff Accounts
+      <span class="badge">2 users</span>
+    </div>
+    <div class="staff-grid">
+
+      <div class="staff-card">
+        <div class="staff-card-role role-admin">&#9632; Admin</div>
+        <div class="staff-card-name">System Administrator</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">admin@bankofferai.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Admin1234!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Portal</span>
+          <a href="http://bankoffer.local/admin" class="cred-value portal" style="text-decoration:none;">bankoffer.local/admin</a>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <div class="staff-card-role role-employee">&#9632; Employee</div>
+        <div class="staff-card-name">Relationship Manager</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">manager@bankofferai.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Employee1234!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Portal</span>
+          <a href="http://bankoffer.local" class="cred-value portal" style="text-decoration:none;">bankoffer.local</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Customer SSO Accounts -->
+  <div class="section">
+    <div class="section-label">
+      Customer Accounts <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">&mdash; Keycloak SSO</span>
+      <span class="badge">5 users</span>
+    </div>
+    <div class="staff-grid">
+
+      <div class="staff-card">
+        <div class="staff-card-role role-customer">&#9632; Customer &mdash; Profile #1</div>
+        <div class="staff-card-name">Demo Customer</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">demo@bankofferai.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Demo1234!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Profile</span>
+          <span class="cred-value portal">Cluj · 30y · High risk · Fragile</span>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <div class="staff-card-role role-customer">&#9632; Customer &mdash; Profile #5</div>
+        <div class="staff-card-name">Maria Johnson</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">maria.johnson@example.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Customer1!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Profile</span>
+          <span class="cred-value portal">Cluj · 26y · High risk · Fragile</span>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <div class="staff-card-role role-customer">&#9632; Customer &mdash; Profile #12</div>
+        <div class="staff-card-name">Alex Chen</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">alex.chen@example.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Customer1!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Profile</span>
+          <span class="cred-value portal">Bucharest · 54y · High risk · Strong</span>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <div class="staff-card-role role-customer">&#9632; Customer &mdash; Profile #25</div>
+        <div class="staff-card-name">Sarah Miller</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">sarah.miller@example.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Customer1!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Profile</span>
+          <span class="cred-value portal">Bucharest · 38y · High risk · Fragile</span>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <div class="staff-card-role role-customer">&#9632; Customer &mdash; Profile #38</div>
+        <div class="staff-card-name">John Doe</div>
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">john.doe@example.com</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value">Customer1!</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Profile</span>
+          <span class="cred-value portal">Timisoara · 29y · High risk · Strong</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 50 Customer Profiles -->
+  <div class="section">
+    <div class="section-label">
+      Customer Profiles (Data Only)
+      <span class="badge">50 records</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>City</th>
+            <th>Age</th>
+            <th>Income (RON)</th>
+            <th>Risk Profile</th>
+            <th>Financial Health</th>
+            <th>Existing Products</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="id-cell">1</td><td class="city-cell">Cluj</td><td>30</td><td class="income-cell">4,824</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">2</td><td class="city-cell">Bucharest</td><td>23</td><td class="income-cell">3,488</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">3</td><td class="city-cell">Timisoara</td><td>49</td><td class="income-cell">7,557</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td>&mdash;</td></tr>
+          <tr><td class="id-cell">4</td><td class="city-cell">Timisoara</td><td>44</td><td class="income-cell">4,674</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">5</td><td class="city-cell">Cluj</td><td>26</td><td class="income-cell">4,291</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span><span class="product-pill">Credit Card</span><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">6</td><td class="city-cell">Timisoara</td><td>32</td><td class="income-cell">6,814</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">7</td><td class="city-cell">Iasi</td><td>51</td><td class="income-cell">5,803</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">8</td><td class="city-cell">Bucharest</td><td>26</td><td class="income-cell">6,752</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">9</td><td class="city-cell">Bucharest</td><td>30</td><td class="income-cell">9,482</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">10</td><td class="city-cell">Bucharest</td><td>29</td><td class="income-cell">8,930</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Current Account</span><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">11</td><td class="city-cell">Cluj</td><td>22</td><td class="income-cell">9,304</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">12</td><td class="city-cell">Bucharest</td><td>54</td><td class="income-cell">7,808</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">13</td><td class="city-cell">Cluj</td><td>55</td><td class="income-cell">5,504</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">14</td><td class="city-cell">Cluj</td><td>37</td><td class="income-cell">4,832</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Current Account</span></td></tr>
+          <tr><td class="id-cell">15</td><td class="city-cell">Bucharest</td><td>35</td><td class="income-cell">5,103</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Credit Card</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">16</td><td class="city-cell">Cluj</td><td>36</td><td class="income-cell">10,177</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">17</td><td class="city-cell">Timisoara</td><td>24</td><td class="income-cell">3,117</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">18</td><td class="city-cell">Iasi</td><td>37</td><td class="income-cell">6,510</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Mortgage</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">19</td><td class="city-cell">Cluj</td><td>28</td><td class="income-cell">10,062</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Current Account</span></td></tr>
+          <tr><td class="id-cell">20</td><td class="city-cell">Timisoara</td><td>33</td><td class="income-cell">6,139</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">21</td><td class="city-cell">Iasi</td><td>32</td><td class="income-cell">4,604</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">22</td><td class="city-cell">Iasi</td><td>38</td><td class="income-cell">3,960</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">23</td><td class="city-cell">Timisoara</td><td>25</td><td class="income-cell">6,111</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">24</td><td class="city-cell">Bucharest</td><td>26</td><td class="income-cell">3,931</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Current Account</span></td></tr>
+          <tr><td class="id-cell">25</td><td class="city-cell">Bucharest</td><td>38</td><td class="income-cell">4,343</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">26</td><td class="city-cell">Cluj</td><td>26</td><td class="income-cell">9,484</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Credit Card</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">27</td><td class="city-cell">Timisoara</td><td>45</td><td class="income-cell">11,288</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">28</td><td class="city-cell">Cluj</td><td>29</td><td class="income-cell">7,905</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">29</td><td class="city-cell">Iasi</td><td>38</td><td class="income-cell">6,450</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td>&mdash;</td></tr>
+          <tr><td class="id-cell">30</td><td class="city-cell">Iasi</td><td>32</td><td class="income-cell">7,533</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">31</td><td class="city-cell">Timisoara</td><td>24</td><td class="income-cell">4,232</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">32</td><td class="city-cell">Bucharest</td><td>35</td><td class="income-cell">3,685</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">33</td><td class="city-cell">Cluj</td><td>48</td><td class="income-cell">5,532</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">34</td><td class="city-cell">Bucharest</td><td>52</td><td class="income-cell">7,371</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">35</td><td class="city-cell">Cluj</td><td>39</td><td class="income-cell">6,728</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Loan</span><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">36</td><td class="city-cell">Cluj</td><td>38</td><td class="income-cell">3,452</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-fragile">Fragile</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">37</td><td class="city-cell">Timisoara</td><td>34</td><td class="income-cell">10,149</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">38</td><td class="city-cell">Timisoara</td><td>29</td><td class="income-cell">8,967</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Credit Card</span><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">39</td><td class="city-cell">Bucharest</td><td>46</td><td class="income-cell">9,592</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Debit Card</span><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">40</td><td class="city-cell">Iasi</td><td>42</td><td class="income-cell">7,978</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">41</td><td class="city-cell">Cluj</td><td>43</td><td class="income-cell">5,780</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">42</td><td class="city-cell">Iasi</td><td>26</td><td class="income-cell">5,414</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Loan</span></td></tr>
+          <tr><td class="id-cell">43</td><td class="city-cell">Bucharest</td><td>49</td><td class="income-cell">9,547</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Current Account</span><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">44</td><td class="city-cell">Iasi</td><td>42</td><td class="income-cell">4,988</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">45</td><td class="city-cell">Iasi</td><td>39</td><td class="income-cell">10,777</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-strong">Strong</span></td><td>&mdash;</td></tr>
+          <tr><td class="id-cell">46</td><td class="city-cell">Timisoara</td><td>43</td><td class="income-cell">4,269</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Credit Card</span></td></tr>
+          <tr><td class="id-cell">47</td><td class="city-cell">Cluj</td><td>35</td><td class="income-cell">6,788</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-fragile">Fragile</span></td><td>&mdash;</td></tr>
+          <tr><td class="id-cell">48</td><td class="city-cell">Iasi</td><td>23</td><td class="income-cell">9,812</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-strong">Strong</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Mortgage</span></td></tr>
+          <tr><td class="id-cell">49</td><td class="city-cell">Bucharest</td><td>53</td><td class="income-cell">9,389</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Mortgage</span><span class="product-pill">Debit Card</span></td></tr>
+          <tr><td class="id-cell">50</td><td class="city-cell">Cluj</td><td>30</td><td class="income-cell">9,371</td><td><span class="tag tag-moderate">Moderate</span></td><td><span class="tag tag-stable">Stable</span></td><td><span class="product-pill">Loan</span><span class="product-pill">Debit Card</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  BankOffer AI &middot; Local Development Environment &middot; k3d + ArgoCD + Keycloak
+</footer>
+
+</body>
+</html>

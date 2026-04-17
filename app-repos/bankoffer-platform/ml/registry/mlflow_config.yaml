@@ -1,0 +1,51 @@
+# MLflow configuration for Bank Offering AI model registry
+# All model training and inference scripts reference this file.
+
+tracking_uri: "http://mlflow.bankofferingai.internal:5000"
+
+artifact_store:
+  type: s3
+  bucket: bankofferingai-mlflow-artifacts
+  region: us-east-1
+  prefix: models/
+
+backend_store:
+  type: postgresql
+  uri: "postgresql://mlflow:mlflow@mlflow-db.bankofferingai.internal:5432/mlflow"
+
+experiments:
+  profile_model: "bank-offering-profile-model"
+  scoring_model: "bank-offering-scoring-model"
+
+registered_models:
+  life_stage_classifier:
+    description: "RandomForest classifier for customer life stage prediction"
+    tags:
+      team: aiml
+      domain: customer-profiling
+    stages:
+      - Staging
+      - Production
+
+  risk_tolerance_regressor:
+    description: "GradientBoosting regressor for customer risk tolerance scoring"
+    tags:
+      team: aiml
+      domain: customer-profiling
+    stages:
+      - Staging
+      - Production
+
+  offer_scoring_model:
+    description: "Calibrated logistic regression for offer acceptance prediction"
+    tags:
+      team: aiml
+      domain: product-scoring
+    stages:
+      - Staging
+      - Production
+
+serving:
+  default_stage: Production
+  cache_ttl_seconds: 300
+  max_batch_size: 64

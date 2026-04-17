@@ -1,0 +1,102 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: careerforge-dev
+
+resources:
+  - ../../base
+
+patches:
+  # Scale down to 1 replica in dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      labelSelector: "component=backend"
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: celery-worker
+  # Use single worker in dev to avoid async greenlet issues with forked processes
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value: ["uvicorn", "services.admin.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--loop", "asyncio"]
+    target:
+      kind: Deployment
+      name: admin-service
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value: ["uvicorn", "services.employee.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1", "--loop", "asyncio"]
+    target:
+      kind: Deployment
+      name: employee-service
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value: ["uvicorn", "services.coach.main:app", "--host", "0.0.0.0", "--port", "8003", "--workers", "1", "--loop", "asyncio"]
+    target:
+      kind: Deployment
+      name: coach-service
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value: ["uvicorn", "services.ai_connector.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "asyncio"]
+    target:
+      kind: Deployment
+      name: ai-connector-service
+  # Add dev PII/HMAC keys as env vars for all backend services
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/envFrom/-
+        value:
+          secretRef:
+            name: careerforge-pii
+            optional: true
+    target:
+      kind: Deployment
+      labelSelector: "component=backend"
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/envFrom/-
+        value:
+          secretRef:
+            name: careerforge-pii
+            optional: true
+    target:
+      kind: Deployment
+      name: celery-worker
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/envFrom/-
+        value:
+          secretRef:
+            name: careerforge-pii
+            optional: true
+    target:
+      kind: Deployment
+      name: celery-beat
+
+configMapGenerator:
+  - name: careerforge-common
+    behavior: merge
+    literals:
+      - APP_VERSION=dev
+      - KEYCLOAK_URL=http://keycloak-keycloakx-http.keycloak.svc.cluster.local
+      - CORS_ORIGINS=http://cf-employee.local,http://cf-admin.local,http://cf-coach.local,http://localhost:3000,http://localhost:3002,http://localhost:3003
+
+images:
+  - name: gitea.local/careerforge/backend
+    newTag: dev
+  - name: gitea.local/careerforge/admin-portal
+    newTag: dev
+  - name: gitea.local/careerforge/coach-portal
+    newTag: dev
+  - name: gitea.local/careerforge/employee-portal
+    newTag: dev

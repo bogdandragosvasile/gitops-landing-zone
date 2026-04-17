@@ -1,0 +1,90 @@
+{{- if .Values.seed.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "bankoffer.fullname" . }}-seed
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bankoffer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+  annotations:
+    # Run after the release is installed or upgraded so that the DB is ready.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    # Remove the completed job pod to keep the namespace clean.
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.seed.backoffLimit }}
+  # Give the seed job 10 minutes before timing out (Keycloak takes a while).
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "bankoffer.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: seed
+    spec:
+      restartPolicy: {{ .Values.seed.restartPolicy }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Wait for postgres to be ready before running the seed script.
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.seed.initImage | default "postgres:16-alpine" }}
+          imagePullPolicy: {{ .Values.seed.initImagePullPolicy | default "IfNotPresent" }}
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ include "bankoffer.postgresql.host" . }} -U postgres; do
+                echo "Waiting for PostgreSQL…"; sleep 3;
+              done
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bankoffer.fullname" . }}-postgresql
+                  key: postgres-password
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: seed
+          image: {{ include "bankoffer.seed.image" . }}
+          imagePullPolicy: {{ .Values.seed.image.pullPolicy }}
+          command: ["python", "scripts/seed_data.py"]
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bankoffer.fullname" . }}-postgresql
+                  key: postgres-password
+            # seed_data.py uses psycopg2 (sync), not asyncpg
+            - name: DATABASE_URL
+              value: "postgresql://postgres:$(DB_PASSWORD)@{{ include "bankoffer.postgresql.host" . }}:5432/bankofferingai"
+          resources:
+            {{- toYaml .Values.seed.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

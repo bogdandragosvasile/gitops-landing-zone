@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bankoffer
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"   # deploy after pangolin-stack (wave 10)
+    # ArgoCD Image Updater — watches Gitea registry for new semver tags and
+    # writes back to git automatically.
+    argocd-image-updater.argoproj.io/image-list: api=git.lupulup.com/admin/bankoffer-api
+    argocd-image-updater.argoproj.io/api.update-strategy: semver
+    argocd-image-updater.argoproj.io/api.helm.image-name: api.image.repository
+    argocd-image-updater.argoproj.io/api.helm.image-tag: api.image.tag
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://git.lupulup.com/admin/BankOfferingAI.git
+    targetRevision: main
+    path: infra/helm/bankoffer
+    helm:
+      releaseName: bankoffer
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
+      # All passwords come from K8s Secret 'bankoffer-platform-creds' pre-created
+      # by Terraform (see openstack-gitops/terraform/bankoffer-cluster/02-platform/secrets.tf).
+      # values-staging.yaml references this via postgresql.auth.existingSecret,
+      # redis.auth.existingSecret, and keycloakSync.existingSecret — no --set needed.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bankoffer
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: bankoffer-postgresql
+      namespace: bankoffer
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: Secret
+      name: bankoffer-redis
+      namespace: bankoffer
+      jsonPointers:
+        - /data
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas   # managed by HPA

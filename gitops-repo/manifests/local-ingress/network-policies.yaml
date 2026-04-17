@@ -290,6 +290,27 @@ spec:
 
 ---
 
+# --- 28b. Allow monitoring pods to reach each other (egress side)
+#          allow-dns-egress applies Egress policyType to all pods, which
+#          implicitly denies all other egress (including Grafana → Prometheus).
+#          This policy restores intra-namespace egress for all monitoring pods.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-internal-egress
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+
+---
+
 # --- 29. Allow Promtail to push logs to Loki (port 3100)
 #         Promtail runs as DaemonSet in kube-system (or monitoring), no
 #         network ingress from outside is needed — already covered by

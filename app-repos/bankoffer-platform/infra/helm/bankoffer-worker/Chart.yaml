@@ -1,0 +1,9 @@
+apiVersion: v2
+name: bankoffer-worker
+description: Helm chart for the BankOfferingAI ML worker service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: ptx37
+    url: https://github.com/ptx37

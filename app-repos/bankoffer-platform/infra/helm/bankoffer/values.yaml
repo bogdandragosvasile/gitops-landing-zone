@@ -1,0 +1,314 @@
+# =============================================================================
+# BankOffer AI — Umbrella Helm Values
+# Override per environment with values-staging.yaml / values-production.yaml
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Global image pull settings
+# ---------------------------------------------------------------------------
+global:
+  imagePullSecrets:
+    - name: dockerhub-pull
+    - name: gitea-pull
+  # imageRegistry: ""  # override to use a private registry mirror
+  security:
+    allowInsecureImages: true
+
+# ---------------------------------------------------------------------------
+# API service (FastAPI)
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 2
+
+  image:
+    repository: gitea.local:3000/platform/bankoffer-api
+    pullPolicy: Never
+    tag: "dev"
+
+  nameOverride: ""
+  fullnameOverride: ""
+
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+  # Extra env vars injected as-is (appended to the generated set)
+  extraEnv: []
+  # - name: MY_VAR
+  #   value: "my-value"
+
+  # Application-level config (non-secret)
+  config:
+    demoMode: "true"
+    logLevel: "info"
+    keycloakRealm: bankofferai
+
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - api
+            topologyKey: kubernetes.io/hostname
+
+# ---------------------------------------------------------------------------
+# Keycloak sync job
+# Runs as a Helm post-install/post-upgrade hook and additively registers
+# the deployment's ingress hostnames as redirect_uri / web_origin /
+# post_logout_redirect_uri in the external Keycloak client.
+# Requires keycloakSync.adminPassword (inject via --set, never commit).
+# ---------------------------------------------------------------------------
+keycloakSync:
+  enabled: false
+  url: "https://auth.lupulup.com"
+  realm: "bankofferai"
+  clientId: "bankofferai-app"
+  adminUser: "admin"
+  adminPassword: ""         # inject via --set OR use existingSecret
+  existingSecret: ""        # if set, use this Secret's 'adminPassword' key instead
+
+# ---------------------------------------------------------------------------
+# Seed job (one-shot DB initialiser — runs as a Helm post-install/upgrade hook)
+# ---------------------------------------------------------------------------
+seed:
+  enabled: true
+  image:
+    repository: gitea.local:3000/platform/bankoffer-api
+    pullPolicy: Never
+    tag: "dev"
+  initImage: gitea.local:3000/platform/bitnami-postgresql:16
+  # Restart policy for the Job pod
+  restartPolicy: OnFailure
+  backoffLimit: 3
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# Ingress — employee portal  (bankoffer.lupulup.com)
+# ---------------------------------------------------------------------------
+ingressEmployee:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    # Redirect /portal to customer domain
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /portal {
+        return 302 https://my-bankoffer.lupulup.com/;
+      }
+  host: bankoffer.lupulup.com
+  tls:
+    secretName: bankoffer-employee-tls
+
+# ---------------------------------------------------------------------------
+# Ingress — customer portal  (my-bankoffer.lupulup.com)
+# ---------------------------------------------------------------------------
+ingressCustomer:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    # Map / → /portal; block staff routes
+    nginx.ingress.kubernetes.io/app-root: /portal
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /admin { return 403; }
+      location /staff-auth/ { return 403; }
+      location /api-tokens/ { return 403; }
+      location /products-catalog/ { return 403; }
+  host: my-bankoffer.lupulup.com
+  tls:
+    secretName: bankoffer-customer-tls
+
+# ---------------------------------------------------------------------------
+# Network policy
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# PostgreSQL sub-chart (bitnami/postgresql)
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  image:
+    registry: gitea.local:3000
+    repository: platform/bitnami-postgresql
+    tag: "16"
+  auth:
+    database: bankofferingai
+    username: postgres
+    # Passwords are NEVER stored here — provide via --set or a sealed secret
+    # postgresql.auth.postgresPassword: ""
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    initdb:
+      # Run schema on first boot.
+      # The ConfigMap is mounted separately; we reference it here so bitnami
+      # executes it via the initdb scripts mechanism.
+      scriptsConfigMap: ""   # set to "" — schema is applied by the seed Job
+  metrics:
+    enabled: false   # disabled — postgres-exporter cannot pull from Docker Hub on this cluster
+
+# ---------------------------------------------------------------------------
+# Redis sub-chart (bitnami/redis)
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    # redis.auth.password: ""  — provide via --set or a sealed secret
+    existingSecret: ""
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    extraArgs:
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
+# ---------------------------------------------------------------------------
+# Keycloak sub-chart (bitnami/keycloak)
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  auth:
+    adminUser: admin
+    # keycloak.auth.adminPassword: ""  — provide via --set or a sealed secret
+    existingSecret: ""
+  production: false   # set true to enable TLS termination at keycloak
+  httpRelativePath: /auth
+  proxyHeaders: xforwarded
+  extraEnvVars:
+    - name: KC_HEALTH_ENABLED
+      value: "true"
+    - name: KC_HTTP_ENABLED
+      value: "true"
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+  command:
+    - /opt/bitnami/keycloak/bin/kc.sh
+  args:
+    - start-dev
+    - --import-realm
+  extraVolumes:
+    - name: realm-import
+      configMap:
+        name: '{{ .Release.Name }}-realm'
+  extraVolumeMounts:
+    - name: realm-import
+      mountPath: /opt/bitnami/keycloak/data/import
+      readOnly: true
+  postgresql:
+    enabled: true   # keycloak uses its own bundled postgresql instance
+  service:
+    type: ClusterIP
+    ports:
+      http: 80
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BankOffer AI — Platform Overview</title>
+<style>
+  @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+
+  :root {
+    --bg:      #FAFAF8;
+    --raised:  #FFFFFF;
+    --sunken:  #F2F0EB;
+    --border:  #E8E6E1;
+    --strong:  #D1CFC9;
+    --text:    #1A1A1A;
+    --muted:   #6B6B6B;
+    --faint:   #999999;
+    --blue:    #2D5F9A;
+    --red:     #C1403D;
+    --yellow:  #D4A843;
+    --green:   #2D7D46;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Satoshi', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── Cover page ── */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px;
+    border-bottom: 1px solid var(--border);
+    page-break-after: always;
+  }
+  .cover-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 32px;
+  }
+  .cover h1 {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .cover-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 560px;
+    margin-bottom: 48px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 40px;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .cover-meta span { font-weight: 600; color: var(--text); }
+
+  /* ── Section pages ── */
+  .page {
+    padding: 64px 80px;
+    border-bottom: 1px solid var(--border);
+    page-break-after: always;
+    min-height: 100vh;
+  }
+  .page-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 10px;
+  }
+  .page h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .page-intro {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 680px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+  .pipeline-step {
+    flex: 1;
+    min-width: 110px;
+    padding: 16px 14px;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-right: none;
+    position: relative;
+  }
+  .pipeline-step:last-child { border-right: 1px solid var(--border); }
+  .pipeline-step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--strong);
+    background: var(--bg);
+    z-index: 1;
+    padding: 2px 0;
+  }
+  .pipeline-num {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+  .pipeline-step h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .pipeline-step p {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .pipeline-step .tech {
+    margin-top: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Grid cards ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .card {
+    background: var(--raised);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .card-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 8px;
+  }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .card p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .how-to {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    margin-top: 2px;
+  }
+  .how-to-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 5px;
+  }
+  .how-to ol {
+    padding-left: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .how-to ol li { margin-bottom: 2px; }
+
+  /* ── Tag badges ── */
+  .tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  .tag-blue   { background: rgba(45,95,154,.1);  color: var(--blue);   border: 1px solid rgba(45,95,154,.25); }
+  .tag-green  { background: rgba(45,125,70,.1);  color: var(--green);  border: 1px solid rgba(45,125,70,.25); }
+  .tag-yellow { background: rgba(212,168,67,.12); color: var(--yellow); border: 1px solid rgba(212,168,67,.3); }
+  .tag-red    { background: rgba(193,64,61,.1);  color: var(--red);    border: 1px solid rgba(193,64,61,.25); }
+  .tag-gray   { background: var(--sunken);        color: var(--muted);  border: 1px solid var(--border); }
+
+  /* ── Section divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .divider-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    min-width: 24px;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Compliance table ── */
+  table.rules {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  table.rules th {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  table.rules td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: top;
+  }
+  table.rules td:first-child { color: var(--text); font-weight: 500; }
+  table.rules tr:last-child td { border-bottom: none; }
+
+  /* ── Footer ── */
+  .page-footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--faint);
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { background: white; }
+    .cover, .page { page-break-after: always; }
+    @page { margin: 0; size: A4 landscape; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     COVER
+══════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-label">Platform Overview — v2.8.0</div>
+  <h1>BankOffer AI</h1>
+  <p class="cover-sub">AI-powered real-time product personalisation for banking customers — from transaction signal to personalised offer in under 200 ms.</p>
+  <div class="cover-meta">
+    <div>Version <span>2.8.0</span></div>
+    <div>Date <span>April 2026</span></div>
+    <div>Audience <span>Product · Engineering · Compliance</span></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     1. WHAT IT DOES
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 01</div>
+  <h2>What BankOffer AI Does</h2>
+  <p class="page-intro">The platform ingests real-time transaction streams, builds a per-customer feature profile, scores every active product against that profile, enforces regulatory compliance rules, and delivers a ranked, personalised offer through push notification, email, or in-app banner — all within a single pipeline run triggered by a customer event.</p>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="pipeline-num">01</div>
+      <h4>Event Trigger</h4>
+      <p>Transaction, login, or lifecycle event received from core banking</p>
+      <div class="tech">Kafka · CDC</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">02</div>
+      <h4>Customer Profile</h4>
+      <p>20 real-time features: balance trend, spending, risk tolerance, age segment</p>
+      <div class="tech">Feast · Redis · PostgreSQL</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">03</div>
+      <h4>Product Scoring</h4>
+      <p>XGBoost model scores each active product against the customer profile</p>
+      <div class="tech">scikit-learn · MLflow</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">04</div>
+      <h4>Compliance Filter</h4>
+      <p>Suitability rules: MiFID II, IDD, GDPR, AI Act hard filters applied per offer</p>
+      <div class="tech">Rules engine · Audit log</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">05</div>
+      <h4>Offer Ranking</h4>
+      <p>Top N offers ranked by composite score, personalised copy generated</p>
+      <div class="tech">FastAPI · Ranking model</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">06</div>
+      <h4>Delivery</h4>
+      <p>Push notification, email, or in-app banner sent to the customer</p>
+      <div class="tech">FCM · SES · WebSocket</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">07</div>
+      <h4>Customer Action</h4>
+      <p>Customer accepts, views details, or declines. Suitability confirmation collected where required</p>
+      <div class="tech">Portal · MiFID consent</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">08</div>
+      <h4>Feedback Loop</h4>
+      <p>Outcome recorded, model retrains weekly on new acceptance/rejection signal</p>
+      <div class="tech">Airflow · MLflow registry</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Regulatory Coverage</div>
+      <h3>Built-in Compliance</h3>
+      <p>Every recommendation is filtered through hard-coded suitability rules before delivery. Products ineligible for a customer are excluded and logged with a reason code, creating a permanent audit trail compliant with EBA and AI Act Article 12–13.</p>
+      <div>
+        <span class="tag tag-blue">MiFID II</span>
+        <span class="tag tag-blue">IDD</span>
+        <span class="tag tag-blue">GDPR Art. 22</span>
+        <span class="tag tag-red">AI Act High-Risk</span>
+        <span class="tag tag-yellow">EBA Guidelines</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">AI Connectors</div>
+      <h3>Pluggable AI Layer</h3>
+      <p>External AI providers (Anthropic Claude, OpenAI, Gemini, Perplexity, HuggingFace, Local LLM) can be activated through the Connectors admin panel. They power the Intelligence Hub for new product discovery and the Playbook Analysis for performance diagnostics.</p>
+      <div>
+        <span class="tag tag-gray">Anthropic</span>
+        <span class="tag tag-gray">OpenAI</span>
+        <span class="tag tag-gray">Gemini</span>
+        <span class="tag tag-gray">Perplexity</span>
+        <span class="tag tag-gray">Local LLM</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 01 / Application Logic</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     2. ADMIN PORTAL — OVERVIEW
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 02</div>
+  <h2>Admin Portal</h2>
+  <p class="page-intro">The Admin Portal (<code style="font-size:12px;background:var(--sunken);padding:1px 6px;">/admin</code>) is the central control plane for bank staff. It provides 12 sections covering system health, user management, regulatory compliance, product configuration, AI connector management, market intelligence, and financial performance analytics.</p>
+
+  <div class="grid-3">
+
+    <div class="card">
+      <div class="card-label">Admin › Overview</div>
+      <h3>Dashboard</h3>
+      <p>Live system health: API latency, active products, pending AI suggestions, compliance statistics, connector status, and recent audit events.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Land here after login to verify system status</li>
+          <li>Check "Pending AI Suggestions" count — any items waiting for approval</li>
+          <li>Review compliance pass rate and flag count for quick health check</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Users</div>
+      <h3>User Management</h3>
+      <p>View and manage bank staff and customer accounts sourced from Keycloak. Inspect roles, last login, MFA status, and linked customer profile.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Search by name or email using the filter bar</li>
+          <li>Click a row to inspect roles and linked customer ID</li>
+          <li>Verify MFA is enabled for admin-role accounts</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Security</div>
+      <h3>Security & MFA</h3>
+      <p>Configure authentication policy, social login providers (Google, Microsoft, Facebook), MFA enforcement, session timeouts, and brute-force protection settings.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Enable or disable social login providers per bank policy</li>
+          <li>Set MFA as required for admin roles</li>
+          <li>Adjust session idle/max lifetime under "Session Policy"</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › AI Act</div>
+      <h3>AI Act Compliance</h3>
+      <p>Risk register for the high-risk AI system classification, compliance deadline tracking, suitability rule documentation, and consent statistics. Required for EU AI Act Article 9–15 conformity assessment.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Review the Risk Register entries before any model update</li>
+          <li>Check consent statistics to ensure opt-out rates are within thresholds</li>
+          <li>Export the technical documentation section before an audit</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Tokens</div>
+      <h3>API Tokens</h3>
+      <p>Create and revoke API tokens for system-to-system integrations (core banking, CRM, external analytics). Token scopes can be restricted to specific endpoints.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Click "Generate Token" and select the required scope</li>
+          <li>Copy the token immediately — it is not shown again</li>
+          <li>Revoke any token that is no longer needed or has been exposed</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Products</div>
+      <h3>Product Catalog</h3>
+      <p>Manage the full catalogue of banking products available for recommendation. Add, edit, activate or deactivate products. Each product has type, risk level, category, priority, and suitability metadata.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Click "Add Product" and fill in all required fields including risk level</li>
+          <li>Toggle active/inactive to include or exclude from the scoring engine</li>
+          <li>Inactive products are never recommended but remain in the audit history</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 02 / Admin Portal (1 of 2)</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     3. ADMIN PORTAL — CONTINUED
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 02 (continued)</div>
+  <h2>Admin Portal — Intelligence, Performance & Audit</h2>
+  <p class="page-intro">The second half of the admin portal covers the AI-driven capabilities: market intelligence, AI connector configuration, product performance analytics, and the full recommendation audit trail with per-record drill-down.</p>
+
+  <div class="grid-3">
+
+    <div class="card">
+      <div class="card-label">Admin › Consent</div>
+      <h3>Consent Registry</h3>
+      <p>Manage GDPR consent rules per product and channel. View the product-consent matrix showing which consent is required for each product. Track consent sync status with the customer-facing portal.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Open the Product Consent Matrix to see consent requirements at a glance</li>
+          <li>Add a new consent rule by selecting a product and the required consent type</li>
+          <li>Verify "Last Synced" timestamp — should be within 24 hours</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Connectors</div>
+      <h3>AI Connectors</h3>
+      <p>Configure external AI and data provider integrations. Each connector has a status lifecycle: Available → Pending Approval → Approved → Active → Disabled. Active connectors are used by the Intelligence Hub and Playbook Analysis.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Click a connector card to open the configuration panel</li>
+          <li>Enter the API key and select the model version</li>
+          <li>Submit for approval — a compliance officer reviews before activation</li>
+          <li>Only connectors in "Active" state are called by the AI features</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Intelligence</div>
+      <h3>Intelligence Hub</h3>
+      <p>AI-generated market intelligence (exchange rates, regulations, economic indicators, geopolitics) and product suggestions. Suggestions go through a human-in-the-loop approval workflow before they can be added to the product catalogue.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Click "Analyse Market" to trigger an AI call (rate-limited: 5/hour)</li>
+          <li>Review generated product suggestions in the pending queue</li>
+          <li>Approve → product is added to the catalog; Reject → logged with reason</li>
+          <li>Filter by category (exchange markets, regulations, trends…)</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Audit Log</div>
+      <h3>Audit Trail</h3>
+      <p>Immutable log of every recommendation batch generated by the engine. Each record shows the customer UUID, trigger signal, timestamp, number of offers generated/excluded, and suitability check results. Required by EBA and AI Act Art. 12.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Filter by date range or customer UUID to locate a specific decision</li>
+          <li>Click a Rec ID to open the detail panel: suitability checks (PASS/FAIL per rule), final offer cards, and excluded products with reason codes</li>
+          <li>Use the raw JSON export for regulatory audit submissions</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Product P&L</div>
+      <h3>Product P&L Dashboard</h3>
+      <p>Per-product performance scorecard over a selectable period (7d / 30d / 90d). Shows offers generated, funnel conversion, compliance pass rate, composite score (Business Score − Risk Penalty), and net contribution. Includes an AI-powered playbook analysis on demand.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Select the period (7d / 30d / 90d) — all metrics recalculate</li>
+          <li>Use filter buttons above the table: All, Low Conversion, High Block Rate, Negative Score, High Complaints</li>
+          <li>Read the Position Map: X = Final Score, Y = Compliance %, bubble = volume</li>
+          <li>Click "Run AI Analysis" in the Playbook section to get per-product AI recommendations from the active connector</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Admin › Config</div>
+      <h3>System Configuration</h3>
+      <p>Runtime configuration panel for the scoring engine: confidence thresholds, rate limits, compliance rule toggles, model kill-switch, product catalogue cap, and cooldown periods for AI-suggested products.</p>
+      <div class="how-to">
+        <div class="how-to-label">How to use</div>
+        <ol>
+          <li>Adjust confidence threshold (default 0.60) to tighten or loosen offer eligibility</li>
+          <li>Use the model kill-switch to immediately halt all AI recommendations in an incident</li>
+          <li>Set cooldown hours for new AI-suggested products before they go live</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 02 / Admin Portal (2 of 2)</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     4. CUSTOMER PORTAL
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 03</div>
+  <h2>Customer Portal</h2>
+  <p class="page-intro">The Customer Portal (<code style="font-size:12px;background:var(--sunken);padding:1px 6px;">/portal</code>) is the customer-facing interface. Customers log in with their bank credentials (Keycloak SSO) and see their personalised offers, the data used to generate them, their GDPR consent settings, interaction history, and any active application forms.</p>
+
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-label">Portal › Offers</div>
+      <h3>My Offers</h3>
+      <p>Displays the customer's current personalised product recommendations. Each offer card shows the product name, a personalised explanation, and a call-to-action. Products excluded by the compliance filter are shown in a collapsed "Suitability Filter" section with a GDPR Art. 22 transparency notice explaining why they were excluded.</p>
+      <div class="how-to">
+        <div class="how-to-label">Customer journey</div>
+        <ol>
+          <li>Customer sees offer cards ranked by relevance score</li>
+          <li>Tapping "Learn More" starts the product journey and records a journey_started event</li>
+          <li>For investment products, a MiFID II suitability confirmation modal appears before acceptance</li>
+          <li>Accepting an offer creates an application form and routes to the Forms section</li>
+          <li>Declining records the event in the feedback loop for model improvement</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Portal › My Data</div>
+      <h3>My Data</h3>
+      <p>Full transparency view of the customer features used by the recommendation engine. Shows each feature name, value, and a plain-language explanation of how it influences recommendations. Required by GDPR Art. 22 (right to explanation for automated decisions).</p>
+      <div class="how-to">
+        <div class="how-to-label">Customer journey</div>
+        <ol>
+          <li>Customer can see their current risk profile, balance trend, spending segments</li>
+          <li>Each feature has a tooltip explaining its source (transaction history, profile)</li>
+          <li>No raw data (account numbers, amounts) is shown — only derived features</li>
+          <li>Customer can request a data correction via the support flow from this page</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Portal › Consent</div>
+      <h3>Consent Management</h3>
+      <p>GDPR consent hub. Customers can review, grant, or withdraw consent for each processing purpose: personalised recommendations, data analysis, marketing communications, profiling, and MiFID II suitability processing. Each consent change is timestamped and synced to the admin Consent Registry.</p>
+      <div class="how-to">
+        <div class="how-to-label">Customer journey</div>
+        <ol>
+          <li>Toggle individual consent purposes on or off</li>
+          <li>Withdrawing "Personalised Recommendations" stops new offers immediately</li>
+          <li>Each toggle generates a consent event logged in the audit trail</li>
+          <li>MiFID II suitability consent is presented per-offer, not as a blanket toggle</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Portal › History</div>
+      <h3>Recommendation History</h3>
+      <p>Chronological log of all offers presented to the customer. Shows product name, date, action taken (viewed / accepted / declined), and outcome. Customers have a right to access this history under GDPR Art. 15.</p>
+      <div class="how-to">
+        <div class="how-to-label">Customer journey</div>
+        <ol>
+          <li>Browse the full history of offers received</li>
+          <li>Filter by product type or date range</li>
+          <li>Accepted offers show the current application status</li>
+          <li>Declined offers can be re-evaluated if the customer changes their mind via the offer cards section</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Portal › Forms</div>
+      <h3>Application Forms</h3>
+      <p>Digital product application forms generated when a customer accepts an offer. Form fields are pre-populated from the customer profile where allowed. The bank employee completes the KYC/AML verification step. Status flows: Pending → Submitted → Approved / Rejected.</p>
+      <div class="how-to">
+        <div class="how-to-label">Customer journey</div>
+        <ol>
+          <li>Form appears automatically after accepting an offer</li>
+          <li>Customer fills in any required fields not pre-populated</li>
+          <li>Submit sends the form to the RM queue for review</li>
+          <li>Customer receives a push notification when status changes</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--sunken);border-color:var(--border);">
+      <div class="card-label">End-to-end flow summary</div>
+      <h3>How it connects</h3>
+      <p>The Admin Portal and Customer Portal share the same backend API. Actions in the admin panel (activating a product, approving an AI suggestion, changing a consent rule) take effect immediately for customers.</p>
+      <table class="rules" style="margin-top:8px;">
+        <tr><th>Admin action</th><th>Customer effect</th></tr>
+        <tr><td>Activate product in catalog</td><td>Product enters scoring pool, can appear in offers</td></tr>
+        <tr><td>Approve AI suggestion</td><td>New product added to catalog and scoring</td></tr>
+        <tr><td>Add consent rule</td><td>Customer sees new consent toggle in portal</td></tr>
+        <tr><td>Trigger model kill-switch</td><td>No new offers generated until re-enabled</td></tr>
+        <tr><td>Deactivate product</td><td>Product removed from all future recommendations</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 03 / Customer Portal</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     5. COMPLIANCE GUARDRAILS
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 04</div>
+  <h2>Built-in Compliance Guardrails</h2>
+  <p class="page-intro">The engine enforces ten hard guardrails that cannot be overridden through configuration. These are implemented at the code level and logged in every recommendation record. Any recommendation that fails a guardrail is excluded and the reason code is stored in the audit trail.</p>
+
+  <table class="rules">
+    <tr>
+      <th>#</th>
+      <th>Guardrail</th>
+      <th>What it enforces</th>
+      <th>Regulation</th>
+      <th>Failure action</th>
+    </tr>
+    <tr>
+      <td>G-01</td>
+      <td>Confidence threshold</td>
+      <td>Model score must exceed 0.60 — low-confidence suggestions are never sent</td>
+      <td>AI Act Art. 9 (risk management)</td>
+      <td>Offer excluded, reason: low_confidence</td>
+    </tr>
+    <tr>
+      <td>G-02</td>
+      <td>Rate limiting</td>
+      <td>Max 5 AI analysis calls per hour per endpoint to prevent cost runaway</td>
+      <td>Internal policy</td>
+      <td>HTTP 429, alert generated</td>
+    </tr>
+    <tr>
+      <td>G-03</td>
+      <td>Fragile customer protection</td>
+      <td>Customers with financial_health = fragile cannot receive credit or lending products</td>
+      <td>EBA Consumer Protection</td>
+      <td>All lending excluded, reason: fragile_customer</td>
+    </tr>
+    <tr>
+      <td>G-04</td>
+      <td>Stale suggestion expiry</td>
+      <td>AI-generated product suggestions auto-expire after 30 days if not actioned</td>
+      <td>AI Act Art. 9 (monitoring)</td>
+      <td>Status → expired, removed from queue</td>
+    </tr>
+    <tr>
+      <td>G-05</td>
+      <td>AI output content filter</td>
+      <td>PII (email, phone, IBAN, card number) stripped from all AI-generated text</td>
+      <td>GDPR Art. 25 (privacy by design)</td>
+      <td>PII replaced with [REDACTED] tag, warning logged</td>
+    </tr>
+    <tr>
+      <td>G-06</td>
+      <td>Product catalogue cap</td>
+      <td>Maximum 50 active products in the catalogue at any time</td>
+      <td>Internal policy (model quality)</td>
+      <td>New product activation blocked until one is deactivated</td>
+    </tr>
+    <tr>
+      <td>G-07</td>
+      <td>AI product cooldown</td>
+      <td>AI-suggested products must complete a 24-hour staging period before going live</td>
+      <td>AI Act Art. 14 (human oversight)</td>
+      <td>Product held in staging state, not scored</td>
+    </tr>
+    <tr>
+      <td>G-08</td>
+      <td>Minor / restricted customer</td>
+      <td>Customers flagged as minor or legally restricted cannot receive investment products</td>
+      <td>MiFID II Art. 25</td>
+      <td>Investment products excluded, reason: customer_restricted</td>
+    </tr>
+    <tr>
+      <td>G-09</td>
+      <td>Risk profile mismatch</td>
+      <td>High-risk products (ETF Growth, Managed Portfolio) require risk_tolerance ≥ moderate</td>
+      <td>MiFID II Suitability</td>
+      <td>Product excluded, reason: risk_mismatch</td>
+    </tr>
+    <tr>
+      <td>G-10</td>
+      <td>Prompt injection filter</td>
+      <td>AI outputs scanned for injection patterns before being stored or displayed</td>
+      <td>AI Act Art. 15 (cybersecurity)</td>
+      <td>Pattern replaced with [FILTERED], warning logged</td>
+    </tr>
+  </table>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 04 / Compliance Guardrails</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     6. ARCHITECTURE SUMMARY
+══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Section 05</div>
+  <h2>Architecture Summary</h2>
+  <p class="page-intro">BankOffer AI is deployed on Kubernetes via a GitOps pipeline (ArgoCD). Each domain is owned by an autonomous Claude Code agent that coordinates through Git artifacts. The infrastructure is designed for zero-downtime deployment and horizontal scaling of every stateless component.</p>
+
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="card-label">Data Plane</div>
+      <h3>Ingestion & Feature Store</h3>
+      <table class="rules">
+        <tr><th>Component</th><th>Role</th></tr>
+        <tr><td>Apache Kafka (MSK)</td><td>Transaction event streaming, 3-AZ replication</td></tr>
+        <tr><td>Apache Airflow</td><td>Batch ETL, dbt model runs, weekly model retraining</td></tr>
+        <tr><td>Feast + Redis</td><td>Online feature store — sub-millisecond feature retrieval</td></tr>
+        <tr><td>PostgreSQL 16 (RDS)</td><td>Operational database — products, recommendations, audit, consent</td></tr>
+        <tr><td>MLflow</td><td>Model registry, experiment tracking, version management</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">Serving Plane</div>
+      <h3>API & Delivery</h3>
+      <table class="rules">
+        <tr><th>Component</th><th>Role</th></tr>
+        <tr><td>FastAPI (Uvicorn)</td><td>Offer API on port 8000 — scoring, compliance, ranking</td></tr>
+        <tr><td>Notification Router</td><td>FCM push, AWS SES email, WebSocket in-app — port 8001</td></tr>
+        <tr><td>Keycloak</td><td>Identity and access management — SSO, MFA, OAuth2</td></tr>
+        <tr><td>Redis 7</td><td>Rate limiting, session cache, feature lookup cache</td></tr>
+        <tr><td>Prometheus / Grafana</td><td>Metrics, alerting, dashboards — SLO tracking</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-label">Deployment</div>
+      <h3>GitOps with ArgoCD</h3>
+      <p>Every merge to <code style="font-size:11px;background:var(--sunken);padding:1px 5px;">main</code> triggers an ArgoCD sync. Image tags are updated automatically by ArgoCD Image Updater. Rollbacks take &lt; 30 seconds via <code style="font-size:11px;background:var(--sunken);padding:1px 5px;">argocd app rollback</code>.</p>
+      <div>
+        <span class="tag tag-gray">Kubernetes (EKS)</span>
+        <span class="tag tag-gray">Helm</span>
+        <span class="tag tag-gray">Kustomize</span>
+        <span class="tag tag-gray">Terraform</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Security</div>
+      <h3>Supply Chain & Runtime</h3>
+      <p>Container images signed with Cosign. OPA/Gatekeeper policy enforcement in-cluster. Gitleaks scans on every commit. Trivy vulnerability scanning in CI. Secrets via AWS Secrets Manager + External Secrets Operator.</p>
+      <div>
+        <span class="tag tag-red">Cosign</span>
+        <span class="tag tag-red">OPA</span>
+        <span class="tag tag-red">Trivy</span>
+        <span class="tag tag-red">Gitleaks</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">AI Connector Access</div>
+      <h3>Network Note</h3>
+      <p>The Docker daemon is configured with <code style="font-size:11px;background:var(--sunken);padding:1px 5px;">iptables: false</code> for OpenStack Neutron coexistence. A systemd oneshot service adds the required NAT MASQUERADE rule at boot to restore outbound internet access for AI connector calls.</p>
+      <div>
+        <span class="tag tag-yellow">bankofferingai-nat.service</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>BankOffer AI — Platform Overview v2.8.0</span>
+    <span>Section 05 / Architecture Summary</span>
+  </div>
+</div>
+
+</body>
+</html>

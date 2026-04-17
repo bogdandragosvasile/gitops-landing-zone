@@ -18,6 +18,9 @@ spec:
     - repoURL: http://gitea:3000/platform/gitops-infra.git
       targetRevision: main
       ref: values
+    - repoURL: http://gitea:3000/platform/gitops-infra.git
+      targetRevision: main
+      path: manifests/bankoffer/extra
   destination:
     server: https://kubernetes.default.svc
     namespace: bankoffer

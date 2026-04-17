@@ -1,0 +1,71 @@
+groups:
+  - name: bankoffer.api
+    rules:
+      - alert: BankOfferAPIDown
+        expr: up{job="bankoffer-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: bankoffer-ai
+        annotations:
+          summary: "BankOffer AI API is down"
+          description: "The bankoffer-api scrape target has been unreachable for 1 minute."
+
+      - alert: BankOfferAPIErrorRateHigh
+        expr: |
+          sum(rate(http_requests_total{job="bankoffer-api",status=~"5.."}[5m]))
+          / sum(rate(http_requests_total{job="bankoffer-api"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: bankoffer-ai
+        annotations:
+          summary: "API 5xx error rate > 5%"
+          description: "Error rate: {{ $value | humanizePercentage }}"
+
+      - alert: BankOfferAPILatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="bankoffer-api"}[5m])) by (le)
+          ) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          service: bankoffer-ai
+        annotations:
+          summary: "API p99 latency > 1s"
+          description: "p99 latency: {{ $value | humanizeDuration }}"
+
+  - name: bankoffer.scoring
+    rules:
+      - alert: BankOfferScoringLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(bankoffer_offer_scoring_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: bankoffer-ai
+        annotations:
+          summary: "Offer scoring p99 latency > 500ms"
+
+      - alert: BankOfferSuitabilityFailureRateHigh
+        expr: |
+          sum(rate(bankoffer_suitability_checks_total{result="failed"}[5m]))
+          / sum(rate(bankoffer_suitability_checks_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: bankoffer-ai
+        annotations:
+          summary: "Over 50% of suitability checks failing"
+
+      - alert: BankOfferKillSwitchActive
+        expr: bankoffer_kill_switch_active == 1
+        for: 0m
+        labels:
+          severity: critical
+          service: bankoffer-ai
+        annotations:
+          summary: "Model kill-switch is engaged — all offers suspended"

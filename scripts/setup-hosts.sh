@@ -12,6 +12,12 @@ ENTRIES=(
   "127.0.0.1 grafana.local"
   "127.0.0.1 prometheus.local"
   "127.0.0.1 vault.local"
+  "127.0.0.1 bankoffer.local"
+  "127.0.0.1 bankoffer-slides.local"
+  "127.0.0.1 cf-admin.local"
+  "127.0.0.1 cf-coach.local"
+  "127.0.0.1 cf-employee.local"
+  "127.0.0.1 cf-slides.local"
 )
 
 log_info "Configuring local DNS via hosts file (platform: $PLATFORM)..."

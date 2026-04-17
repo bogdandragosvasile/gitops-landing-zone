@@ -41,6 +41,34 @@ api:
       drop:
         - ALL
 
+  # Override static files — replace all external lupulup.com URLs with local equivalents
+  extraVolumes:
+    - name: auth-js-override
+      configMap:
+        name: bankoffer-auth-js-override
+    - name: index-html-override
+      configMap:
+        name: bankoffer-index-html-override
+    - name: admin-html-override
+      configMap:
+        name: bankoffer-admin-html-override
+    - name: portal-html-override
+      configMap:
+        name: bankoffer-portal-html-override
+  extraVolumeMounts:
+    - name: auth-js-override
+      mountPath: /app/services/api/static/js/auth.js
+      subPath: auth.js
+    - name: index-html-override
+      mountPath: /app/services/api/static/index.html
+      subPath: index.html
+    - name: admin-html-override
+      mountPath: /app/services/api/static/admin.html
+      subPath: admin.html
+    - name: portal-html-override
+      mountPath: /app/services/api/static/portal.html
+      subPath: portal.html
+
 seed:
   enabled: true
   image:
@@ -68,7 +96,11 @@ postgresql:
     database: bankofferingai
     username: bankofferuser
     password: bankoffer123
+    postgresPassword: bankoffer-pg-admin123
   primary:
+    pgHbaConfiguration: |
+      local all all trust
+      host  all all 0.0.0.0/0 md5
     persistence:
       size: 2Gi
     resources:

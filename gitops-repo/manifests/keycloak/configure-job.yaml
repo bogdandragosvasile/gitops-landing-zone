@@ -72,6 +72,20 @@ data:
     done
 
     TOKEN=$(get_token)
+    # BankOffer AI — public PKCE client for Customer Portal OIDC
+    N=$(curl -sf -H "Authorization: Bearer $TOKEN" "$KC_URL/admin/realms/$KC_REALM/clients?clientId=bankofferai-app" \
+      | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+    if [ "$N" = "0" ]; then
+      log "Creating BankOffer AI client..."
+      curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        "$KC_URL/admin/realms/$KC_REALM/clients" \
+        -d '{"clientId":"bankofferai-app","name":"BankOffer AI","enabled":true,"publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":false,"redirectUris":["http://bankoffer.local/*"],"webOrigins":["http://bankoffer.local"],"protocol":"openid-connect","attributes":{"pkce.code.challenge.method":"S256"}}'
+      ok "BankOffer AI client created"
+    else
+      log "BankOffer AI client exists"
+    fi
+
+    TOKEN=$(get_token)
     for CF_ENTRY in "careerforge-admin|http://cf-admin.local|CareerForge Admin" \
                     "careerforge-coach|http://cf-coach.local|CareerForge Coach" \
                     "careerforge-employee|http://cf-employee.local|CareerForge Employee"; do
@@ -84,7 +98,7 @@ data:
         log "Creating $CNAME client..."
         curl -sf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
           "$KC_URL/admin/realms/$KC_REALM/clients" \
-          -d "{\"clientId\":\"$CID\",\"name\":\"$CNAME\",\"enabled\":true,\"publicClient\":true,\"standardFlowEnabled\":true,\"directAccessGrantsEnabled\":true,\"redirectUris\":[\"$CURI/*\"],\"webOrigins\":[\"$CURI\"],\"protocol\":\"openid-connect\"}"
+          -d "{\"clientId\":\"$CID\",\"name\":\"$CNAME\",\"enabled\":true,\"publicClient\":true,\"standardFlowEnabled\":true,\"directAccessGrantsEnabled\":true,\"redirectUris\":[\"$CURI/*\",\"$CURI/login\"],\"webOrigins\":[\"$CURI\"],\"protocol\":\"openid-connect\"}"
         ok "$CNAME client created"
       else
         log "$CNAME client exists"

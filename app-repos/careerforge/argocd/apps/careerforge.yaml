@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: careerforge
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  # Multi-source: backend (Kustomize) + 3 portals (Helm) in one Application.
+  # ArgoCD v2.6+ merges all sources into a single resource set.
+  sources:
+    - repoURL: https://git.lupulup.com/careerforge/platform.git
+      targetRevision: HEAD
+      path: kustomize/overlays/openstack
+
+    - repoURL: https://git.lupulup.com/careerforge/platform.git
+      targetRevision: HEAD
+      path: helm/cf-portal
+      helm:
+        releaseName: careerforge-employee
+        valueFiles:
+          - values-employee.yaml
+
+    - repoURL: https://git.lupulup.com/careerforge/platform.git
+      targetRevision: HEAD
+      path: helm/cf-portal
+      helm:
+        releaseName: careerforge-coach
+        valueFiles:
+          - values-coach.yaml
+
+    - repoURL: https://git.lupulup.com/careerforge/platform.git
+      targetRevision: HEAD
+      path: helm/cf-portal
+      helm:
+        releaseName: careerforge-admin
+        valueFiles:
+          - values-admin.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: careerforge
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    # StatefulSet volumeClaimTemplates are immutable after creation
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/volumeClaimTemplates
+    # kustomize configMapGenerator adds a hash suffix to the name
+    - group: ""
+      kind: ConfigMap
+      jsonPointers:
+        - /metadata/name
+
+  revisionHistoryLimit: 5

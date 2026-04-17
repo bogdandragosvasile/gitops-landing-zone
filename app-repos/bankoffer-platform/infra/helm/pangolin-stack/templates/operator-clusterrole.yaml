@@ -1,0 +1,18 @@
+{{- if .Values.operator.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "pangolin-stack.fullname" . }}-operator
+  labels:
+    {{- include "pangolin-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: operator
+rules:
+  # Watch Ingresses across all namespaces
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  # Needed for leader-election / status updates (future)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+{{- end }}

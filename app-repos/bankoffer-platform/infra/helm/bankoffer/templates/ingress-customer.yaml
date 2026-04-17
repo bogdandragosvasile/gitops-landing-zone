@@ -1,0 +1,53 @@
+{{- if .Values.ingressCustomer.enabled -}}
+# ─────────────────────────────────────────────────────────────────────────────
+# Customer portal  —  my-bankoffer.lupulup.com
+#
+# Routes:
+#   /auth/*           → keycloak (SSO)
+#   /                 → api/portal  (root → /portal via app-root annotation)
+#   /admin            → 403  (blocked via server-snippet)
+#   /staff-auth/      → 403
+#   /api-tokens/      → 403
+#   /products-catalog → 403
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "bankoffer.fullname" . }}-customer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "bankoffer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ingress-customer
+  annotations:
+    {{- with .Values.ingressCustomer.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressCustomer.className }}
+  {{- if .Values.ingressCustomer.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingressCustomer.host | quote }}
+      secretName: {{ .Values.ingressCustomer.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingressCustomer.host | quote }}
+      http:
+        paths:
+          # /auth/ → Keycloak
+          - path: /auth/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "bankoffer.keycloak.host" . }}
+                port:
+                  name: http
+          # Everything else → API  (access restrictions enforced via server-snippet)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "bankoffer.fullname" . }}-api
+                port:
+                  name: http
+{{- end }}

@@ -1,0 +1,16 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: careerforge-redis
+  namespace: careerforge
+spec:
+  encryptedData:
+    url: AgB49XqQ0rOh419hvzDbjNLnWD4CEerLn/ZDVL4nPsTE9pYJpdXwjGKwASbLSwJMm8ejpcv/g07WBz5CnRsIIUHAqrmDyz6sgYkI6xcvkAjBum8UCsQwGAkythbZaBVJpmMJpQdwCjPwAmyT3JYt+f0/AY6ilzpuz2OjH05ojJ6CxRPmj6hAtnFSr4z2/JnAd0PnAG5Yr1xG9KvApCDxM7vrA6pENXUHhUHV9u7Gi7rJ+V5U+Lu2PtZFFMsDwDZwLx6APlY1CjROi0GwdEnumMOHwhO5BtwfooDcVPrKxhIMCQwaijX/8RksGs5UAICAr5gzy7FzTXBlrrNQoWyUG1j5tvNXWxtUot3ZkiZxyl6+GnCILcAH0/VNZrUPbGlqbigUgk1j1UDIy9ducCUe9DVukjFv1K2mRyUOs/EydJHUR2BKZWXOH4Jallkchfz1KQdHUUvv/+iYxBgXRu/qgMhzaloydcHgkX0zU2heZgNoB/jAW+qIgbHyUEwkGhbz/lMR8grsRPOVu6To2GHbeh6uWAzOmgDxfa0WrageunPEZX3b/ZvhOaV/JyesIsecgmBpMKs7frpPgkzaSZnM2G5bRVmyoGSxmPSIDyCkDE0j18TrRxGQrPI4iCWvPVYABT57E5tUAi0cnKXRkbh9i+CFz7+4qefsc68x6i+7l1L7pQNw8+Evp4pKIkEHsOmzNyms/Bc7EhUCv5XspMLxkbiW0cDXZB+mUlDPw+6bLQmLilnviIA5cnIdnqZynQQxSQS9Yw==
+  template:
+    metadata:
+      creationTimestamp: null
+      name: careerforge-redis
+      namespace: careerforge
+    type: Opaque

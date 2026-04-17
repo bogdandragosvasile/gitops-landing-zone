@@ -1,0 +1,94 @@
+# =============================================================================
+# Staging overrides — applied on top of values.yaml
+# helm upgrade --install bankoffer ./infra/helm/bankoffer \
+#   -f infra/helm/bankoffer/values-staging.yaml \
+#   --set postgresql.auth.postgresPassword=$DB_PASS \
+#   --set redis.auth.password=$REDIS_PASS \
+#   --set keycloak.auth.adminPassword=$KC_PASS \
+#   -n bankoffer-staging --create-namespace
+# =============================================================================
+
+api:
+  replicaCount: 1
+  config:
+    demoMode: "true"
+    logLevel: "debug"
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+seed:
+  enabled: false   # DB already initialised; seed job ran (and failed) on first deploy
+
+ingressEmployee:
+  host: bankoffer-k8s.lupulup.com
+  annotations:
+    # Pangolin's Traefik terminates TLS externally — disable in-cluster SSL redirect
+    # so ingress-nginx doesn't loop on HTTP traffic arriving from the newt pod.
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /portal {
+        return 302 https://my-bankoffer-k8s.lupulup.com/;
+      }
+    # Opt this Ingress into Pangolin tunnel exposure (operator creates Pangolin
+    # resource + Cloudflare CNAME automatically).
+    pangolin.io/expose: "true"
+  tls: null   # TLS terminated by Pangolin/Traefik externally
+
+ingressCustomer:
+  host: my-bankoffer-k8s.lupulup.com
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/app-root: /portal
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /admin { return 403; }
+      location /staff-auth/ { return 403; }
+      location /api-tokens/ { return 403; }
+      location /products-catalog/ { return 403; }
+    pangolin.io/expose: "true"
+  tls: null   # TLS terminated by Pangolin/Traefik externally
+
+postgresql:
+  auth:
+    # Terraform pre-creates 'bankoffer-platform-creds' with key 'postgres-password'
+    existingSecret: bankoffer-platform-creds
+    secretKeys:
+      adminPasswordKey: postgres-password
+  primary:
+    persistence:
+      size: 5Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+redis:
+  auth:
+    # Terraform pre-creates 'bankoffer-platform-creds' with key 'redis-password'
+    existingSecret: bankoffer-platform-creds
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      size: 1Gi
+
+keycloakSync:
+  enabled: false   # Keycloak already configured; sync job credentials are stale
+  existingSecret: bankoffer-platform-creds
+
+keycloak:
+  enabled: false   # staging uses external Keycloak at auth.lupulup.com

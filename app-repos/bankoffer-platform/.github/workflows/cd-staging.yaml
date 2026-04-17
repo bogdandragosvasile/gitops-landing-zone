@@ -1,0 +1,67 @@
+name: CD — Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force sync even if ArgoCD server check fails"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: ArgoCD Sync to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    # Skip if ArgoCD server secret is not configured (infrastructure not provisioned yet)
+    if: ${{ vars.ARGOCD_ENABLED == 'true' && secrets.ARGOCD_SERVER != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login "${{ secrets.ARGOCD_SERVER }}" \
+            --username "${{ secrets.ARGOCD_USERNAME }}" \
+            --password "${{ secrets.ARGOCD_PASSWORD }}" \
+            --grpc-web
+
+      - name: Sync staging applications
+        run: |
+          argocd app sync bankoffer-staging \
+            --revision "${{ github.sha }}" \
+            --prune \
+            --grpc-web
+
+      - name: Wait for healthy state
+        run: |
+          argocd app wait bankoffer-staging \
+            --timeout 300 \
+            --health \
+            --grpc-web
+
+      - name: Verify deployment
+        run: |
+          argocd app get bankoffer-staging --grpc-web
+          echo "Staging deployment completed for commit ${{ github.sha }}"
+
+  skip-notice:
+    name: ArgoCD Not Yet Configured
+    runs-on: ubuntu-latest
+    if: ${{ vars.ARGOCD_ENABLED != 'true' }}
+    steps:
+      - name: Notice
+        run: |
+          echo "ℹ️  Skipping ArgoCD sync — infrastructure not provisioned yet."
+          echo "Set repository variable ARGOCD_ENABLED=true and secrets ARGOCD_SERVER,"
+          echo "ARGOCD_USERNAME, ARGOCD_PASSWORD once the EKS cluster is running."

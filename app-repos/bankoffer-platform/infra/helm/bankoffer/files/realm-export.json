@@ -1,0 +1,272 @@
+{
+  "id": "bankofferai",
+  "realm": "bankofferai",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "de", "ro"],
+  "defaultLocale": "en",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Full system administrator",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "employee",
+        "description": "Bank employee / relationship manager",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "client",
+        "description": "Bank client / customer",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "bankofferai-app",
+      "name": "BankOffer AI Portal",
+      "description": "Unified OIDC client for all BankOffer AI portals",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "/",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://bankoffer.lupulup.com/*",
+        "https://my-bankoffer.lupulup.com/*",
+        "https://bankoffer-k8s.lupulup.com/*",
+        "https://my-bankoffer-k8s.lupulup.com/*",
+        "http://localhost:8000/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://bankoffer.lupulup.com",
+        "https://my-bankoffer.lupulup.com",
+        "https://bankoffer-k8s.lupulup.com",
+        "https://my-bankoffer-k8s.lupulup.com",
+        "http://localhost:8000",
+        "http://localhost:3000"
+      ],
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "https://bankoffer.lupulup.com/*##https://my-bankoffer.lupulup.com/*##https://bankoffer-k8s.lupulup.com/*##https://my-bankoffer-k8s.lupulup.com/*##http://localhost:8000/*",
+        "pkce.code.challenge.method": "S256"
+      },
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "customer-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "customer_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "customer_id",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [],
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10
+    }
+  ],
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "users": [
+    {
+      "username": "admin@bankofferai.com",
+      "email": "admin@bankofferai.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "System",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin1234!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "employee"],
+      "attributes": {
+        "customer_id": ["0"]
+      }
+    },
+    {
+      "username": "manager@bankofferai.com",
+      "email": "manager@bankofferai.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Relationship",
+      "lastName": "Manager",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Employee1234!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["employee"],
+      "attributes": {
+        "customer_id": ["0"]
+      }
+    },
+    {
+      "username": "demo@bankofferai.com",
+      "email": "demo@bankofferai.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Demo",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo1234!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "customer_id": ["1"]
+      }
+    },
+    {
+      "username": "maria.johnson@example.com",
+      "email": "maria.johnson@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Maria",
+      "lastName": "Johnson",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Customer1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "customer_id": ["2"]
+      }
+    },
+    {
+      "username": "alex.chen@example.com",
+      "email": "alex.chen@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Alex",
+      "lastName": "Chen",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Customer1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "customer_id": ["3"]
+      }
+    },
+    {
+      "username": "sarah.miller@example.com",
+      "email": "sarah.miller@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Sarah",
+      "lastName": "Miller",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Customer1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "customer_id": ["4"]
+      }
+    },
+    {
+      "username": "john.doe@example.com",
+      "email": "john.doe@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "John",
+      "lastName": "Doe",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Customer1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "customer_id": ["5"]
+      }
+    }
+  ]
+}
