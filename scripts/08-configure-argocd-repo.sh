@@ -42,3 +42,11 @@ stringData:
 EOF
 
 log_ok "Gitea repository registered in ArgoCD"
+
+# Restart repo-server so it picks up the new secret immediately instead of
+# waiting for its reconcile cycle (which can cache a stale auth failure).
+log_info "Restarting argocd-repo-server to load new credentials..."
+kubectl rollout restart deployment argocd-repo-server -n argocd 2>/dev/null
+kubectl rollout status deployment argocd-repo-server -n argocd --timeout=90s 2>/dev/null \
+  && log_ok "argocd-repo-server restarted" \
+  || log_warn "argocd-repo-server rollout timed out (non-fatal)"

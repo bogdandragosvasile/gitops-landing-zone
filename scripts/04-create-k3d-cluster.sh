@@ -10,13 +10,17 @@ K3D_CONFIG="$PROJECT_ROOT/k3d/k3d-config.yaml"
 # Check if cluster already exists
 if k3d cluster list 2>/dev/null | grep -q "${K3D_CLUSTER_NAME}"; then
   log_warn "Cluster '${K3D_CLUSTER_NAME}' already exists"
-  log_info "Switching kubectl context..."
-  kubectl config use-context "k3d-${K3D_CLUSTER_NAME}"
 else
   log_info "Creating k3d cluster '${K3D_CLUSTER_NAME}'..."
   k3d cluster create --config "$K3D_CONFIG"
   log_ok "Cluster created"
 fi
+
+# Merge kubeconfig and switch context (works whether cluster was just created or pre-existing)
+log_info "Merging kubeconfig and switching context to k3d-${K3D_CLUSTER_NAME}..."
+unset KUBECONFIG
+k3d kubeconfig merge "${K3D_CLUSTER_NAME}" --kubeconfig-merge-default --kubeconfig-switch-context
+log_ok "kubectl context: $(kubectl config current-context)"
 
 # Give the API server a moment to start accepting connections
 log_info "Waiting for k3d API server..."

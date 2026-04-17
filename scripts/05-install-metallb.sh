@@ -21,7 +21,7 @@ else
   helm install metallb metallb/metallb \
     -n metallb-system \
     --version 0.14.9 \
-    --wait --timeout 120s
+    --wait --timeout 300s
 fi
 
 log_ok "MetalLB controller installed"

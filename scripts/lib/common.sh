@@ -9,6 +9,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Ensure user bin directory is on PATH (where k3d/helm/argocd are installed)
 export PATH="$HOME/bin:$PATH"
 
+# Always use the default kubeconfig (~/.kube/config) so that k3d kubeconfig merge
+# is the single source of truth. Unsetting removes any stale KUBECONFIG env var
+# that might point to a separate k3d-specific file from a previous session.
+unset KUBECONFIG
+
 # Load .env
 if [[ -f "$PROJECT_ROOT/.env" ]]; then
   set -a

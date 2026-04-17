@@ -12,8 +12,24 @@ log_ok "Root Application applied"
 log_info "ArgoCD will now sync all child applications..."
 
 # Wait for applications to appear
-log_info "Waiting for applications to register..."
-sleep 10
+log_info "Waiting for root app to sync (up to 120s)..."
+ELAPSED=0
+while [[ $ELAPSED -lt 120 ]]; do
+  ROOT_SYNC=$(kubectl get application root -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null)
+  if [[ "$ROOT_SYNC" == "Synced" ]]; then
+    log_ok "Root app synced (${ELAPSED}s)"
+    break
+  fi
+  sleep 5
+  ELAPSED=$((ELAPSED + 5))
+done
+
+if [[ "$ROOT_SYNC" != "Synced" ]]; then
+  log_warn "Root app still Unknown after 120s — forcing hard refresh..."
+  kubectl patch application root -n argocd --type merge \
+    -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' 2>/dev/null || true
+  sleep 15
+fi
 
 # List all applications
 log_info "Current ArgoCD Applications:"
