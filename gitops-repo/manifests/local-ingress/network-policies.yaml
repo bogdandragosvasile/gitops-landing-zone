@@ -295,6 +295,34 @@ spec:
 
 ---
 
+# --- 27b. Allow Traefik to reach the Prometheus UI (port 9090).
+# Without this the prometheus.local ingress returns 502 (default-deny-ingress
+# blocks Traefik → prometheus even though the backend pod is Healthy).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-prometheus-ingress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 9090
+          protocol: TCP
+
+---
+
 # --- 28. Allow monitoring-internal communication
 #         Grafana → Prometheus (9090), Grafana → Loki (3100),
 #         Prometheus → Alertmanager (9093)
@@ -579,8 +607,8 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: metallb
-      component: controller
+      app.kubernetes.io/name: metallb
+      app.kubernetes.io/component: controller
   policyTypes:
     - Ingress
   ingress:

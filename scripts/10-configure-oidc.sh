@@ -12,34 +12,54 @@ source "$(dirname "$0")/lib/common.sh"
 
 log_info "Configuring OIDC integration..."
 
-# ---- Wait for Keycloak realm to be configured ----
-# The PostSync Job (keycloak-configure) creates the gitops realm after ArgoCD syncs.
-# The Job is deleted by ArgoCD on success (HookSucceeded policy) — we can't poll it
-# directly. Instead, poll for the realm to appear via the Admin API.
-log_info "Waiting for Keycloak 'gitops' realm to be ready (PostSync Job may still be running)..."
-WAITED=0
-MAX_WAIT=300
-REALM_READY=0
-while [[ $WAITED -lt $MAX_WAIT ]]; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    "http://${KEYCLOAK_HOST}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration" 2>/dev/null || true)
-  if [[ "$STATUS" == "200" ]]; then
-    log_ok "Keycloak realm '${KEYCLOAK_REALM}' is ready (${WAITED}s)"
-    REALM_READY=1
-    break
-  fi
-  # If the Job failed, it will have left a failed pod — surface this as a warning
-  FAILED_JOB=$(kubectl get job keycloak-configure -n keycloak \
-    -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || true)
-  if [[ "$FAILED_JOB" == "True" ]]; then
-    log_warn "keycloak-configure job failed — check: kubectl logs -n keycloak -l app=keycloak-configure"
-    break
-  fi
-  sleep 10
-  WAITED=$((WAITED + 10))
-done
-if [[ "$REALM_READY" -eq 0 ]]; then
-  log_error "Keycloak realm '${KEYCLOAK_REALM}' not ready after ${MAX_WAIT}s. Continuing anyway..."
+# ---- Wait for the Keycloak pod to be up and serving the master realm ----
+# The PostSync hook races with keycloak startup; make sure keycloak itself
+# responds before we try to provision anything.
+log_info "Waiting for Keycloak pod readiness..."
+kubectl wait --for=condition=Ready pod/keycloak-keycloakx-0 -n keycloak --timeout=600s \
+  >/dev/null 2>&1 \
+  || log_warn "keycloak-keycloakx-0 did not reach Ready in 600s"
+
+# ---- Run (or re-run) the keycloak-configure PostSync hook ourselves ----
+# Rendering is done via the exact ENVSUBST_VARS whitelist used by
+# 07-push-gitops-repo.sh — running plain `envsubst` on this file without a
+# whitelist would clobber the in-script shell vars ($KC_URL, $KC_ADMIN_USER
+# etc.), producing a script that curls an empty URL and hangs forever.
+# The PostSync hook annotation on the ConfigMap/Job becomes harmless on a
+# direct apply; ArgoCD will still own these resources via tracking labels.
+ENVSUBST_VARS='${GITEA_ORG} ${GITEA_REPO} ${GITEA_ADMIN_USER} ${GITEA_ADMIN_PASSWORD} ${GITEA_ADMIN_EMAIL} ${GITEA_HTTP_PORT} ${GITEA_SSH_PORT} ${GITEA_DB_USER} ${GITEA_DB_PASSWORD} ${GITEA_DB_NAME} ${GITEA_URL} ${GITEA_EXTERNAL_URL} ${ARGOCD_HOST} ${ARGOCD_URL} ${ARGOCD_ADMIN_PASSWORD} ${KEYCLOAK_HOST} ${KEYCLOAK_ADMIN_USER} ${KEYCLOAK_ADMIN_PASSWORD} ${KEYCLOAK_DB_USER} ${KEYCLOAK_DB_PASSWORD} ${KEYCLOAK_DB_NAME} ${KEYCLOAK_REALM} ${OIDC_GITEA_CLIENT_ID} ${OIDC_GITEA_CLIENT_SECRET} ${OIDC_ARGOCD_CLIENT_ID} ${OIDC_ARGOCD_CLIENT_SECRET} ${METALLB_IP_START} ${METALLB_IP_END} ${BASE_IP} ${DOMAIN_SUFFIX}'
+
+RENDERED_JOB="$(mktemp -t keycloak-configure.XXXXXX).yaml"
+trap 'rm -f "$RENDERED_JOB"' EXIT
+envsubst "$ENVSUBST_VARS" \
+  < "$PROJECT_ROOT/gitops-repo/manifests/keycloak/configure-job.yaml" \
+  > "$RENDERED_JOB"
+
+log_info "Running Keycloak realm / client / user bootstrap Job..."
+kubectl delete job keycloak-configure -n keycloak --ignore-not-found >/dev/null 2>&1 || true
+kubectl apply -n keycloak -f "$RENDERED_JOB" >/dev/null
+
+# Wait for the Job to finish — Completed means realm + clients + dev user ready.
+if kubectl wait --for=condition=Complete job/keycloak-configure -n keycloak --timeout=300s \
+    >/dev/null 2>&1; then
+  log_ok "Keycloak bootstrap Job completed"
+  kubectl logs -n keycloak -l job-name=keycloak-configure --tail=20 2>/dev/null \
+    | grep -E '\[INFO\]|\[ OK\]' || true
+else
+  log_warn "Keycloak bootstrap Job did not complete in 300s — full logs:"
+  kubectl logs -n keycloak -l job-name=keycloak-configure --tail=40 2>/dev/null || true
+fi
+
+# Sanity probe — hit the realm from within the keycloak pod itself (no TTY
+# games, no extra pod to schedule). The keycloakx image has curl bundled.
+STATUS=$(kubectl exec -n keycloak keycloak-keycloakx-0 -- \
+  curl -s -o /dev/null -w "%{http_code}" \
+  "http://keycloak-keycloakx-http.keycloak.svc.cluster.local/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration" \
+  2>/dev/null || echo "000")
+if [[ "$STATUS" == "200" ]]; then
+  log_ok "Realm '${KEYCLOAK_REALM}' is live (in-cluster probe)"
+else
+  log_warn "Realm '${KEYCLOAK_REALM}' probe returned '$STATUS' (expected 200)"
 fi
 
 # ---- Configure Gitea OIDC provider ----
