@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] — 2026-04-20
+
+### Fixed
+- **Grafana admin password mismatch** — `gitops-repo/manifests/monitoring/values.yaml`, `gitops-repo/apps/monitoring.yaml`, and `gitops-repo/.gitea/workflows/validate.yaml` contained literal `CHANGE_ME_from_env` placeholders that were never wired up to the envsubst pipeline. As a result the helm-rendered `monitoring-grafana` Secret stored the literal string `CHANGE_ME_from_env` and Grafana's admin login failed for anyone comparing the `.env` value to the live credential.
+  - Replaced the three literals with `${GRAFANA_ADMIN_PASSWORD}` / `${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}`.
+  - Added `${GRAFANA_ADMIN_PASSWORD}` to the `ENVSUBST_VARS` whitelist in both `scripts/07-push-gitops-repo.sh` and `scripts/10-configure-oidc.sh`.
+
+### Note
+Existing clusters upgrading to this release should `kubectl -n argocd rollout restart deploy argocd-repo-server` after the re-push to flush ArgoCD's Helm manifest cache; the repo-server otherwise keeps serving the previously-rendered (broken) output for ~3 min.
+
+---
+
 ## [1.4.1] — 2026-04-20
 
 ### Added

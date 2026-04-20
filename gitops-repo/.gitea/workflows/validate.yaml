@@ -54,7 +54,7 @@ jobs:
       - name: Create Gitea Issue on failure
         run: |
           curl -sf -X POST \
-            -u "gitea_admin:CHANGE_ME_from_env" \
+            -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}" \
             "http://gitea:3000/api/v1/repos/platform/gitops-infra/issues" \
             -H "Content-Type: application/json" \
             -d "{

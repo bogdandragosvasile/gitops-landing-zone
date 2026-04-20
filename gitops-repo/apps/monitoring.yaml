@@ -23,7 +23,7 @@ spec:
               enabled: false
           grafana:
             adminUser: admin
-            adminPassword: CHANGE_ME_from_env
+            adminPassword: "${GRAFANA_ADMIN_PASSWORD}"
             persistence:
               enabled: false
             ingress:
