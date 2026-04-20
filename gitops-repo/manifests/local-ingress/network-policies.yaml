@@ -162,6 +162,31 @@ spec:
 
 ---
 
+# --- 7a. Allow same-namespace pods (e.g. the PostSync keycloak-configure Job)
+#         to reach Keycloak's HTTP port 8080. Without this, default-deny
+#         blocks the realm/client bootstrap script.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-keycloak-http
+  namespace: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloakx
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keycloak
+      ports:
+        - port: 8080
+          protocol: TCP
+
+---
+
 # --- 7b. Allow Keycloak to reach its Postgres database (port 5432)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

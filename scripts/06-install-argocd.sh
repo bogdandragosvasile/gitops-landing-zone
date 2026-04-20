@@ -38,33 +38,47 @@ log_ok "ArgoCD installed"
 # Wait for ArgoCD server
 wait_for_deployment "argocd" "argocd-server" 180
 
-# Set admin password via port-forward + argocd CLI
-log_info "Setting ArgoCD admin password..."
-INITIAL_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" 2>/dev/null | base64 -d)
+# Set admin password by patching argocd-secret directly with a bcrypt hash.
+# This bypasses the CLI login flow (which tends to fail on fresh installs
+# because the ingress path and certs aren't ready yet) and is fully offline.
+log_info "Setting ArgoCD admin password (bcrypt, offline)..."
 
-if [[ -n "$INITIAL_PASSWORD" ]]; then
-  # Port-forward is the most reliable way to reach argocd-server from the host
-  kubectl port-forward svc/argocd-server -n argocd 18080:80 &>/dev/null &
-  PF_PID=$!
-  sleep 3
+# bcrypt the desired password. Prefer htpasswd when available; fall back to
+# python3's bcrypt module (auto-install into the user site-packages if absent).
+BCRYPT_HASH=""
+if command -v htpasswd &>/dev/null; then
+  BCRYPT_HASH=$(htpasswd -nbBC 10 "" "${ARGOCD_ADMIN_PASSWORD}" 2>/dev/null | tr -d ':\n' | sed 's/^\$2y\$/\$2a\$/')
+fi
+if [[ -z "$BCRYPT_HASH" ]]; then
+  # python3 + bcrypt fallback. Install into user site silently if missing.
+  python3 -c 'import bcrypt' 2>/dev/null || pip3 install --user --quiet bcrypt 2>/dev/null || true
+  BCRYPT_HASH=$(PW="${ARGOCD_ADMIN_PASSWORD}" python3 -c '
+import os, sys
+try:
+    import bcrypt
+    print(bcrypt.hashpw(os.environ["PW"].encode(), bcrypt.gensalt(rounds=10)).decode())
+except Exception as e:
+    sys.exit(1)
+' 2>/dev/null || true)
+fi
 
-  if yes | argocd login localhost:18080 --insecure --plaintext \
-    --username admin --password "$INITIAL_PASSWORD" 2>/dev/null; then
-    argocd account update-password \
-      --current-password "$INITIAL_PASSWORD" \
-      --new-password "${ARGOCD_ADMIN_PASSWORD}" 2>/dev/null \
-      && log_ok "Admin password updated" \
-      || log_warn "Could not update password, using initial password"
-    kubectl -n argocd delete secret argocd-initial-admin-secret 2>/dev/null || true
-  else
-    log_warn "Could not login to ArgoCD CLI. Initial password: $INITIAL_PASSWORD"
-  fi
-
-  kill $PF_PID 2>/dev/null || true
-  wait $PF_PID 2>/dev/null || true
+if [[ -n "$BCRYPT_HASH" ]]; then
+  # Encode hash + current timestamp, patch argocd-secret.
+  B64_HASH=$(printf '%s' "$BCRYPT_HASH" | base64 | tr -d '\n')
+  B64_MTIME=$(date -u +%FT%TZ | base64 | tr -d '\n')
+  kubectl -n argocd patch secret argocd-secret \
+    --type merge \
+    -p "{\"data\":{\"admin.password\":\"${B64_HASH}\",\"admin.passwordMtime\":\"${B64_MTIME}\"}}" \
+    >/dev/null 2>&1 \
+    && log_ok "ArgoCD admin password set via argocd-secret patch" \
+    || log_warn "Failed to patch argocd-secret — ArgoCD may still use initial password"
+  # Restart argocd-server so it reloads the secret immediately.
+  kubectl -n argocd rollout restart deploy argocd-server 2>/dev/null
+  kubectl -n argocd rollout status deploy argocd-server --timeout=90s >/dev/null 2>&1 || true
+  kubectl -n argocd delete secret argocd-initial-admin-secret --ignore-not-found >/dev/null 2>&1 || true
 else
-  log_warn "No initial admin secret found. ArgoCD may already be configured."
+  log_warn "Could not produce bcrypt hash — leaving initial admin password in place."
+  log_warn "  Initial password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' 2>/dev/null | base64 -d)"
 fi
 
 log_ok "ArgoCD is ready"

@@ -37,6 +37,46 @@ if ! docker info &>/dev/null; then
 fi
 log_ok "Docker engine reachable ($(docker version --format '{{.Server.Version}}' 2>/dev/null || echo 'unknown'))"
 
+# ── Raise kernel watch/file limits inside the Colima VM ────────────────────────
+# Promtail (monitoring stack) crashes with "too many open files" on a busy
+# cluster unless fs.inotify.max_user_watches is raised. Apply idempotently.
+if [[ "$PLATFORM" == "macos" ]] && command -v colima &>/dev/null; then
+  log_info "Raising inotify + file limits inside the Colima VM..."
+  colima ssh -- sudo sh -c '
+    cat > /etc/sysctl.d/99-k3d-inotify.conf <<EOF
+fs.inotify.max_user_watches   = 524288
+fs.inotify.max_user_instances = 512
+fs.file-max                   = 524288
+EOF
+    sysctl --system >/dev/null 2>&1 || true
+    sysctl -p /etc/sysctl.d/99-k3d-inotify.conf >/dev/null 2>&1 || true
+  ' 2>/dev/null && log_ok "Colima VM inotify limits set (persists across reboot)" \
+                || log_warn "Could not tune Colima VM sysctls (non-fatal; promtail may crash)"
+fi
+
+# ── Validate .env password safety ──────────────────────────────────────────────
+# Passwords with '+', '/', '=' break form-urlencoded OAuth2 token requests
+# (notably the Keycloak admin-cli call in configure-job). Fail fast with a
+# clear hint pointing at scripts/gen-env.sh.
+validate_env_pw() {
+  local name="$1" val="${!1:-}"
+  if [[ -n "$val" && "$val" =~ [+/=] ]]; then
+    log_error "$name in .env contains '+', '/' or '=' — these break OAuth form-urlencoded bodies."
+    log_error "  Regenerate with: bash scripts/gen-env.sh --force  (URL-safe alnum output)"
+    return 1
+  fi
+  return 0
+}
+BAD=0
+for v in GITEA_ADMIN_PASSWORD GITEA_DB_PASSWORD ARGOCD_ADMIN_PASSWORD \
+         KEYCLOAK_ADMIN_PASSWORD KEYCLOAK_DB_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+  validate_env_pw "$v" || BAD=1
+done
+if [[ "$BAD" -ne 0 ]]; then
+  exit 1
+fi
+log_ok ".env passwords are URL-safe"
+
 # ── docker compose plugin (scripts use `docker compose` subcommand) ───────────
 # On macOS with brew's docker-compose package, only the standalone binary ships
 # — the v2 CLI plugin is not wired. Symlink it into ~/.docker/cli-plugins so

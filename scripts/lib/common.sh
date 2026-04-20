@@ -154,11 +154,26 @@ wait_for_pods() {
   return 1
 }
 
-# Generate a random password
+# Generate a random password.
+# Output is restricted to URL/form-safe characters (no +, /, =, %) because
+# several passwords travel through application/x-www-form-urlencoded bodies
+# (e.g. the Keycloak admin-cli token request): '+' decodes to ' ', and that
+# breaks admin auth. Keeps alnum only, padded if necessary.
 # Usage: generate_password [length]
 generate_password() {
-  local length="${1:-24}"
-  openssl rand -base64 "$length" | tr -dc 'A-Za-z0-9!@#' | head -c "$length"
+  local length="${1:-32}"
+  local out=""
+  while [[ ${#out} -lt $length ]]; do
+    out+="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9')"
+  done
+  printf '%s' "${out:0:length}"
+}
+
+# Generate a hex (URL-safe) secret of N bytes (printed as 2N hex chars).
+# Usage: generate_hex [bytes]
+generate_hex() {
+  local bytes="${1:-24}"
+  openssl rand -hex "$bytes"
 }
 
 # Check if a command exists

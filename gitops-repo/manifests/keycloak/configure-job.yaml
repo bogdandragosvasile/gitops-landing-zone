@@ -16,14 +16,14 @@ data:
     set -e
 
     KC_URL="http://keycloak-keycloakx-http.keycloak.svc.cluster.local"
-    KC_ADMIN_USER="${KEYCLOAK_ADMIN_USER}"
-    KC_ADMIN_PASS="${KEYCLOAK_ADMIN_PASSWORD}"
-    KC_REALM="${KEYCLOAK_REALM}"
-    GITEA_CLIENT_ID="${OIDC_GITEA_CLIENT_ID}"
-    GITEA_CLIENT_SECRET="${OIDC_GITEA_CLIENT_SECRET}"
+    KC_ADMIN_USER="admin"
+    KC_ADMIN_PASS="ojgJAMzGJzLN8Bz9waG0GNCRzDoq2P6b"
+    KC_REALM="gitops"
+    GITEA_CLIENT_ID="gitea"
+    GITEA_CLIENT_SECRET="0da1bbf078d0d55a29f50f22cd5ca7e1718ccca4ebb88b07"
     GITEA_REDIRECT="http://gitea:3000"
-    ARGOCD_CLIENT_ID="${OIDC_ARGOCD_CLIENT_ID}"
-    ARGOCD_CLIENT_SECRET="${OIDC_ARGOCD_CLIENT_SECRET}"
+    ARGOCD_CLIENT_ID="argocd"
+    ARGOCD_CLIENT_SECRET="18cc30bcf8c5cd04cb4e25cdab7ab330d6abb858d7c9cb8e"
     ARGOCD_REDIRECT="${ARGOCD_URL}"
 
     log()  { echo "[INFO] $*"; }

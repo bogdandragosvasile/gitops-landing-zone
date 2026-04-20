@@ -25,27 +25,60 @@ if is_unix; then
     exit 0
   fi
 
-  log_info "Adding entries to $HOSTS_FILE (requires sudo)..."
-  {
+  # Build the payload once.
+  PAYLOAD=$(
     echo ""
     echo "$MARKER"
     for entry in "${ENTRIES[@]}"; do
       echo "$entry $MARKER"
     done
-  } | sudo tee -a "$HOSTS_FILE" > /dev/null
+  )
 
-  log_ok "Hosts file updated:"
-  for entry in "${ENTRIES[@]}"; do
-    log_info "  $entry"
-  done
+  # Write strategy:
+  #   1. If sudo -n works (cached credential or NOPASSWD), use it — zero prompts.
+  #   2. Else if we have a TTY, prompt via sudo -S (interactive).
+  #   3. Else on macOS, fall back to osascript with admin privileges (GUI prompt).
+  #   4. Else print manual instructions and fail.
+  write_hosts() {
+    local mode="$1"
+    case "$mode" in
+      sudo-noprompt)
+        printf '%s\n' "$PAYLOAD" | sudo -n tee -a "$HOSTS_FILE" >/dev/null 2>&1
+        ;;
+      sudo-interactive)
+        printf '%s\n' "$PAYLOAD" | sudo tee -a "$HOSTS_FILE" >/dev/null
+        ;;
+      osascript)
+        local esc
+        esc=$(printf '%s' "$PAYLOAD" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+        osascript -e "do shell script \"printf %s ${esc} >> $HOSTS_FILE; dscacheutil -flushcache; killall -HUP mDNSResponder\" with administrator privileges" >/dev/null 2>&1
+        ;;
+    esac
+  }
+
+  log_info "Adding entries to $HOSTS_FILE..."
+  if write_hosts sudo-noprompt; then
+    log_ok "Hosts file updated (cached sudo)"
+  elif [[ -t 0 ]]; then
+    log_info "  (requires sudo — enter your password)"
+    write_hosts sudo-interactive && log_ok "Hosts file updated" \
+      || { log_error "sudo write failed"; exit 1; }
+  elif [[ "$PLATFORM" == "macos" ]]; then
+    log_info "  No TTY — opening macOS admin GUI prompt..."
+    write_hosts osascript && log_ok "Hosts file updated (via osascript)" \
+      || { log_error "osascript write failed"; exit 1; }
+  else
+    log_error "No TTY and no GUI — cannot acquire sudo. Run these as root:"
+    printf '%s\n' "$PAYLOAD" | while read -r l; do echo "    $l"; done
+    exit 1
+  fi
 
   # On macOS, flush the DNS resolver cache so new entries are picked up
-  # immediately without waiting for mDNSResponder TTL expiry.
+  # immediately without waiting for mDNSResponder TTL expiry. osascript
+  # already did it inline; plain sudo branch does it here.
   if [[ "$PLATFORM" == "macos" ]]; then
-    log_info "Flushing macOS DNS cache..."
-    sudo dscacheutil -flushcache 2>/dev/null || true
-    sudo killall -HUP mDNSResponder 2>/dev/null || true
-    log_ok "DNS cache flushed"
+    sudo -n dscacheutil -flushcache 2>/dev/null || true
+    sudo -n killall -HUP mDNSResponder 2>/dev/null || true
   fi
 
 else

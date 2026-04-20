@@ -30,8 +30,14 @@ log_ok "kubectl context: $(kubectl config current-context)"
 # it directly is persistent until the node is re-created.
 if [[ "$PLATFORM" == "macos" ]]; then
   log_info "Patching k3d node DNS for Colima (public resolvers)..."
-  for node in $(k3d node list --cluster "${K3D_CLUSTER_NAME}" -o json 2>/dev/null \
-      | python3 -c "import sys,json; [print(n['name']) for n in json.load(sys.stdin) if 'tools' not in n['name'] and 'serverlb' not in n['name']]" 2>/dev/null); do
+  # k3d 5.8.x has no `--cluster` flag; filter by the runtime label and
+  # keep only server/agent nodes (loadbalancer + tools lack containerd).
+  for node in $(k3d node list -o json 2>/dev/null \
+      | python3 -c "import sys,json
+for n in json.load(sys.stdin):
+    if n.get('role') not in ('server','agent'): continue
+    if n.get('runtimeLabels',{}).get('k3d.cluster') != '${K3D_CLUSTER_NAME}': continue
+    print(n['name'])" 2>/dev/null); do
     docker exec "$node" sh -c 'printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\noptions ndots:0\n" > /etc/resolv.conf' \
       && log_info "  → $node DNS patched" \
       || log_warn "  → $node DNS patch failed"

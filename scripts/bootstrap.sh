@@ -20,9 +20,11 @@ run_step() {
   bash "$SCRIPT_DIR/$step"
 }
 
+run_step "gen-env.sh"                  "Generate .env (if missing) with URL-safe secrets"
 run_step "setup-hosts.sh"              "Configure local DNS (hosts file)"
 run_step "00-prerequisites.sh"         "Install prerequisites (k3d, helm, argocd CLI)"
 run_step "01-create-network.sh"        "Create shared Docker network"
+run_step "01b-ensure-certs.sh"         "Generate Vaultwarden self-signed certs (if missing)"
 run_step "02-start-gitea.sh"           "Start Gitea stack"
 run_step "03-configure-gitea.sh"       "Configure Gitea (admin, org, runner)"
 run_step "04-create-k3d-cluster.sh"    "Create k3d Kubernetes cluster"

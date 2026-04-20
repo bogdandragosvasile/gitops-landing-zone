@@ -18,15 +18,15 @@ extraEnv: |
   - name: KEYCLOAK_ADMIN
     value: admin
   - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-    value: "${KEYCLOAK_ADMIN_PASSWORD}"
+    value: "ojgJAMzGJzLN8Bz9waG0GNCRzDoq2P6b"
   - name: KC_DB
     value: postgres
   - name: KC_DB_URL
     value: jdbc:postgresql://keycloak-postgres.keycloak.svc.cluster.local:5432/keycloak
   - name: KC_DB_USERNAME
-    value: ${KEYCLOAK_DB_USER}
+    value: keycloak
   - name: KC_DB_PASSWORD
-    value: "${KEYCLOAK_DB_PASSWORD}"
+    value: "6fnotwzRl750ibwXM2s7J0aUUd9XCZL8"
 
 ingress:
   enabled: true
