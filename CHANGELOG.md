@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] — 2026-04-20
+
+### Added
+- **industry40 demo app** — a nginx-served HTML page about the history of the four industrial revolutions, published at `http://industry40.local`. Demonstrates the canonical app-of-apps pattern end-to-end:
+  - Source + Kubernetes manifests live in a **separate Gitea repo** `platform/industry40` (created on first deploy, not bundled in this tree).
+  - `gitops-repo/apps/industry40.yaml` is the single `Application` manifest in gitops-infra — the root app-of-apps picks it up automatically.
+  - `gitops-repo/manifests/argocd/values.yaml` declares the `gitea-industry40` repo so ArgoCD repo-server has read creds.
+- `industry40.local` added to `scripts/setup-hosts.sh` and the CoreDNS NodeHosts patch in `scripts/04-create-k3d-cluster.sh`.
+- Portal card under **Your Applications** linking to `http://industry40.local`.
+
+### Changed
+- **`AppProject dev` destinations**: replaced the narrow per-namespace list (which blocked any new app in a namespace not pre-declared) with a single `namespace: '*'` entry. This is a dev landing zone, not a multi-tenant production cluster — restrict later if you shard users.
+
+---
+
 ## [1.5.1] — 2026-04-20
 
 ### Fixed

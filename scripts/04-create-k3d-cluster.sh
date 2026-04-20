@@ -95,6 +95,7 @@ ${METALLB_IP_START} gitea.local
 ${METALLB_IP_START} portal.local
 ${METALLB_IP_START} grafana.local
 ${METALLB_IP_START} prometheus.local
+${METALLB_IP_START} industry40.local
 "
   # Write patch file to avoid shell escaping issues
   PATCH_FILE="/tmp/coredns-patch.yaml"

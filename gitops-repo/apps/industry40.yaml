@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: industry40
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: dev
+  source:
+    # Separate Gitea repo; this Application is the only reference to it from
+    # gitops-infra. That's the point of app-of-apps — each workload lives in
+    # its own repo, gitops-infra just collects the ArgoCD Applications.
+    repoURL: http://gitea:3000/${GITEA_ORG}/industry40.git
+    targetRevision: main
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: industry40
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

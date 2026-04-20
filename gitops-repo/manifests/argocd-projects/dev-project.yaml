@@ -9,18 +9,9 @@ spec:
     - http://gitea:3000/platform/gitops-infra.git
     - '*'
   destinations:
-    - namespace: 'slides-*'
-      server: https://kubernetes.default.svc
-    - namespace: 'dev-*'
-      server: https://kubernetes.default.svc
-      server: https://kubernetes.default.svc
-      server: https://kubernetes.default.svc
-      server: https://kubernetes.default.svc
-    - namespace: 'default'
-      server: https://kubernetes.default.svc
-    - namespace: 'monitoring'
-      server: https://kubernetes.default.svc
-    - namespace: 'portal'
+    # Allow every namespace on the local cluster — this is a dev landing zone,
+    # not a multi-tenant production project. Restrict later if you shard users.
+    - namespace: '*'
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''

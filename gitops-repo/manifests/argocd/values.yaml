@@ -44,7 +44,13 @@ configs:
       type: git
       username: "${GITEA_ADMIN_USER}"
       password: "${GITEA_ADMIN_PASSWORD}"
-    # Add your application repos below, for example:
+    gitea-industry40:
+      url: http://gitea:3000/${GITEA_ORG}/industry40.git
+      name: industry40
+      type: git
+      username: "${GITEA_ADMIN_USER}"
+      password: "${GITEA_ADMIN_PASSWORD}"
+    # Add your own application repos below, for example:
     # gitea-my-app:
     #   url: http://gitea:3000/${GITEA_ORG}/my-app.git
     #   name: my-app
