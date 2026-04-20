@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Manual — GitOps Landing Zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --bg: #0D1B2A;
+  --fg: #F1FAEE;
+  --fg-muted: rgba(241,250,238,0.62);
+  --fg-faint: rgba(241,250,238,0.35);
+  --card-border: rgba(241,250,238,0.15);
+  --card-bg: rgba(241,250,238,0.03);
+  --card-hover-bg: rgba(244,211,94,0.05);
+  --creds-border: rgba(241,250,238,0.1);
+  --code-bg: rgba(241,250,238,0.05);
+  --code-border: rgba(241,250,238,0.1);
+  --table-border: rgba(241,250,238,0.15);
+  --table-head-bg: rgba(244,211,94,0.08);
+  --blockquote-bg: rgba(69,123,157,0.1);
+  --cf-red: #E63946;
+  --cf-blue: #1D3557;
+  --cf-blue-mid: #457B9D;
+  --cf-yellow: #F4D35E;
+  --cf-white: #F1FAEE;
+  --cf-black: #0D1B2A;
+  --cf-green: #2A9D8F;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+[data-theme="light"] {
+  --bg: #F1FAEE;
+  --fg: #0D1B2A;
+  --fg-muted: rgba(13,27,42,0.65);
+  --fg-faint: rgba(13,27,42,0.35);
+  --card-border: rgba(13,27,42,0.2);
+  --card-bg: rgba(13,27,42,0.03);
+  --card-hover-bg: rgba(29,53,87,0.06);
+  --creds-border: rgba(13,27,42,0.12);
+  --code-bg: rgba(13,27,42,0.06);
+  --code-border: rgba(13,27,42,0.12);
+  --table-border: rgba(13,27,42,0.15);
+  --table-head-bg: rgba(244,211,94,0.2);
+  --blockquote-bg: rgba(69,123,157,0.08);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  transition: background 0.3s, color 0.3s;
+  scroll-behavior: smooth;
+}
+html { scroll-padding-top: 96px; }
+.topbar {
+  background: var(--cf-blue);
+  border-bottom: 4px solid var(--cf-red);
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-content { text-align: center; }
+.topbar h1 {
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cf-white);
+}
+.topbar h1 span { color: var(--cf-yellow); }
+.topbar .crumbs {
+  font-size: 0.72rem;
+  color: rgba(241,250,238,0.65);
+  margin-top: 0.25rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.topbar a { color: var(--cf-yellow); text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+.theme-toggle {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 2px solid rgba(241,250,238,0.3);
+  color: var(--cf-white);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.theme-toggle:hover { border-color: var(--cf-yellow); background: rgba(244,211,94,0.15); }
+
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 0 1.25rem; }
+  .toc { position: static !important; top: auto !important; max-height: none !important; margin-bottom: 1rem; }
+}
+
+.toc {
+  position: sticky;
+  top: 96px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  font-size: 0.82rem;
+}
+.toc-title {
+  font-weight: 900;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--cf-red);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--cf-red);
+}
+.toc ul { list-style: none; padding-left: 0; }
+.toc > ul > li { margin-bottom: 0.35rem; }
+.toc > ul > li > a { font-weight: 700; }
+.toc ul ul { padding-left: 1rem; margin-top: 0.25rem; }
+.toc ul ul li { margin-bottom: 0.15rem; font-size: 0.76rem; }
+.toc a {
+  text-decoration: none;
+  color: var(--fg-muted);
+  transition: color 0.15s;
+  display: block;
+  padding: 2px 0;
+}
+.toc a:hover { color: var(--cf-yellow); }
+.toc a.active { color: var(--cf-red); font-weight: 700; }
+
+main.content { padding: 2rem 0 5rem; min-width: 0; }
+
+h2 {
+  font-weight: 900;
+  font-size: 1.4rem;
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--cf-red);
+  color: var(--fg);
+}
+h2:first-child { margin-top: 0.5rem; }
+h3 {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 1.75rem 0 0.6rem;
+  color: var(--cf-yellow);
+}
+[data-theme="light"] h3 { color: var(--cf-blue); }
+h4 {
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--cf-blue-mid);
+}
+p { margin: 0.75rem 0; line-height: 1.6; color: var(--fg); }
+p.lead { font-size: 1.05rem; color: var(--fg-muted); }
+ul, ol { margin: 0.6rem 0 1rem 1.5rem; line-height: 1.65; }
+li { margin-bottom: 0.3rem; }
+li > code { font-size: 0.88em; }
+
+a.inline {
+  color: var(--cf-blue-mid);
+  text-decoration: underline;
+  text-decoration-color: rgba(69,123,157,0.35);
+}
+a.inline:hover { text-decoration-color: var(--cf-yellow); color: var(--cf-yellow); }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border: 1px solid var(--code-border);
+  color: var(--cf-yellow);
+}
+[data-theme="light"] code { color: var(--cf-red); }
+pre {
+  font-family: var(--mono);
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-left: 3px solid var(--cf-red);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0.9rem 0 1.1rem;
+}
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--fg);
+  font-size: 1em;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1rem 0 1.2rem;
+  font-size: 0.88rem;
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+@media (min-width: 700px) {
+  table { display: table; white-space: normal; }
+}
+th, td {
+  border: 1px solid var(--table-border);
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--table-head-bg);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.note, .warn, .tip {
+  border: 1px solid var(--card-border);
+  border-left: 4px solid var(--cf-blue-mid);
+  background: var(--blockquote-bg);
+  padding: 0.85rem 1.15rem;
+  margin: 1rem 0 1.2rem;
+  font-size: 0.92rem;
+}
+.warn { border-left-color: var(--cf-red); background: rgba(230,57,70,0.1); }
+.tip  { border-left-color: var(--cf-green); background: rgba(42,157,143,0.1); }
+.note strong, .warn strong, .tip strong {
+  display: inline-block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+  margin-right: 0.5rem;
+  color: var(--cf-blue-mid);
+}
+.warn strong { color: var(--cf-red); }
+.tip  strong { color: var(--cf-green); }
+
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+  border-top: 2px solid var(--card-border);
+  margin-top: 2rem;
+}
+.footer a { color: var(--cf-blue-mid); text-decoration: none; }
+.footer a:hover { color: var(--cf-yellow); }
+
+/* anchored headings (so TOC links align below the sticky top bar) */
+h2::before, h3::before {
+  display: block;
+  content: "";
+  height: 0;
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-content">
+    <h1>User <span>Manual</span></h1>
+    <p class="crumbs"><a href="index.html">Landing Portal</a> &nbsp;·&nbsp; GitOps Landing Zone</p>
+  </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light theme">
+    <span class="icon" id="themeIcon">&#9790;</span>
+    <span id="themeLabel">Light</span>
+  </button>
+</header>
+
+<div class="layout">
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-title">On this page</div>
+    <ul>
+      <li><a href="#overview">1. Overview</a></li>
+      <li><a href="#prereqs">2. Prerequisites</a>
+        <ul>
+          <li><a href="#prereqs-linux">Linux / WSL2</a></li>
+          <li><a href="#prereqs-mac">macOS</a></li>
+          <li><a href="#prereqs-windows">Windows 11</a></li>
+        </ul>
+      </li>
+      <li><a href="#quickstart">3. Quick start</a></li>
+      <li><a href="#architecture">4. Architecture</a></li>
+      <li><a href="#phases">5. Bootstrap phases</a></li>
+      <li><a href="#services">6. Service URLs &amp; credentials</a></li>
+      <li><a href="#vaultwarden">7. Vaultwarden import</a></li>
+      <li><a href="#sso">8. Single sign-on (Keycloak)</a></li>
+      <li><a href="#addapp">9. Deploy your own application</a></li>
+      <li><a href="#lifecycle">10. Lifecycle</a>
+        <ul>
+          <li><a href="#restart">Restart</a></li>
+          <li><a href="#teardown">Teardown</a></li>
+          <li><a href="#backup">Backup &amp; restore</a></li>
+        </ul>
+      </li>
+      <li><a href="#observability">11. Observability</a></li>
+      <li><a href="#security">12. Security</a></li>
+      <li><a href="#agents">13. AI agent federation</a></li>
+      <li><a href="#platform-notes">14. Platform-specific notes</a>
+        <ul>
+          <li><a href="#platform-mac">macOS / Colima</a></li>
+          <li><a href="#platform-linux">Linux / WSL2</a></li>
+          <li><a href="#platform-windows">Windows</a></li>
+        </ul>
+      </li>
+      <li><a href="#troubleshoot">15. Troubleshooting</a></li>
+      <li><a href="#extending">16. Extending further</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+
+  <section id="overview">
+    <h2>1. Overview</h2>
+    <p class="lead">The <strong>GitOps Landing Zone</strong> is a fully reproducible local Kubernetes platform with SSO, GitOps, observability, and secret management — everything managed via ArgoCD from a self-hosted Gitea, running entirely on your laptop.</p>
+    <p>This manual covers daily-use operations. For architecture decisions and upstream component documentation, follow the links in each section.</p>
+    <p>If you're new to the platform, the fastest path is:</p>
+    <ol>
+      <li>Satisfy the <a class="inline" href="#prereqs">prerequisites</a> for your host OS.</li>
+      <li>Run <a class="inline" href="#quickstart">the quick-start</a> — one command.</li>
+      <li>Open <a class="inline" href="index.html">the landing portal</a> and follow the links.</li>
+      <li>Import <a class="inline" href="#vaultwarden">credentials into Vaultwarden</a>.</li>
+    </ol>
+  </section>
+
+  <section id="prereqs">
+    <h2>2. Prerequisites</h2>
+    <p>The same <code>./bootstrap.sh</code> (or <code>.\bootstrap.ps1</code> on Windows) works on all three host families. Pick your platform below.</p>
+
+    <h3 id="prereqs-linux">Linux / WSL2</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Docker Engine 20.x+</td><td><code>sudo systemctl start docker</code>, ≥16 GB memory available</td></tr>
+        <tr><td>bash, git, curl, openssl</td><td>Standard dev-box packages</td></tr>
+        <tr><td>envsubst (gettext-base)</td><td><code>sudo apt-get install -y gettext-base</code></td></tr>
+        <tr><td>python3</td><td>used by the bootstrap for JSON/YAML tooling</td></tr>
+        <tr><td>sudo</td><td>needed for <code>/etc/hosts</code> on first run</td></tr>
+        <tr><td>~30 GB free disk</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="prereqs-mac">macOS (Intel or Apple Silicon)</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><a class="inline" href="https://brew.sh">Homebrew</a></td><td>required — provides everything else</td></tr>
+        <tr><td><a class="inline" href="https://github.com/abiosoft/colima">Colima</a> + docker CLI</td><td><code>brew install colima docker docker-compose</code></td></tr>
+        <tr><td>git, curl, openssl, gettext, python@3.12</td><td><code>brew install git curl openssl gettext python@3.12</code></td></tr>
+        <tr><td>grep (optional — GNU)</td><td><code>brew install grep</code> — provides <code>ggrep</code> with <code>-P</code> regex for the pre-commit hook</td></tr>
+        <tr><td>~30 GB free disk</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <div class="tip"><strong>Tip</strong>Start Colima with balanced resources so macOS still has headroom:
+<pre><code>colima start --cpu 6 --memory 10 --disk 60</code></pre>On 16 GB machines, don't give Colima more than ~10 GB — the stack fits, and leaving 6 GB to macOS prevents swap thrashing during Helm installs and Docker builds.</div>
+
+    <h3 id="prereqs-windows">Windows 11</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Docker Desktop</td><td>≥16 GB RAM allocated to WSL2</td></tr>
+        <tr><td>Git for Windows (Git Bash)</td><td>the PowerShell wrapper delegates to it</td></tr>
+        <tr><td>Elevated PowerShell</td><td>required for <code>/etc/hosts</code> write on first run</td></tr>
+        <tr><td>~30 GB free disk</td><td></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="quickstart">
+    <h2>3. Quick start</h2>
+
+    <h3>Linux / WSL2 / macOS</h3>
+<pre><code>git clone https://github.com/bogdandragosvasile/gitops-landing-zone.git
+cd gitops-landing-zone
+
+# macOS only: ensure Colima is up
+colima start --cpu 6 --memory 10 --disk 60
+
+./bootstrap.sh</code></pre>
+
+    <h3>Windows 11</h3>
+<pre><code>git clone https://github.com/bogdandragosvasile/gitops-landing-zone.git
+cd gitops-landing-zone
+
+# From an ELEVATED PowerShell:
+.\bootstrap.ps1</code></pre>
+
+    <p>First run: <strong>15–25 minutes</strong>. Re-runs are idempotent — every phase detects existing state and skips gracefully.</p>
+
+    <div class="note"><strong>Note</strong>No <code>.env</code> editing required. The bootstrap calls <code>scripts/gen-env.sh</code> if <code>.env</code> is missing and fills it with URL-safe random secrets. If you want to inspect or regenerate, run <code>./scripts/gen-env.sh --force</code>.</div>
+  </section>
+
+  <section id="architecture">
+    <h2>4. Architecture</h2>
+
+<pre><code>Host (Linux / macOS / Windows)
+│
+├── Docker Network: gitops (172.20.0.0/24)
+│   ├── gitea + gitea-db + gitea-runner
+│   ├── vaultwarden (HTTPS 8443)
+│   └── dnsmasq (*.local → 127.0.0.1, in-cluster only)
+│
+└── k3d cluster (1 server + 2 agents)
+    ├── Traefik ingress (hostPorts 80 / 443)
+    ├── MetalLB (172.20.0.100-150)
+    ├── ArgoCD (app-of-apps — 10 child Applications)
+    ├── Keycloak + PostgreSQL (SSO for Gitea + ArgoCD)
+    ├── cert-manager, sealed-secrets
+    ├── Prometheus + Grafana + Loki + Promtail
+    └── Landing Portal (portal.local)</code></pre>
+
+    <p>All service traffic is routed through Traefik with <code>*.local</code> hostnames. These resolve to <code>127.0.0.1</code> via <code>/etc/hosts</code>; in-cluster DNS is served by dnsmasq at <code>172.20.0.2:53</code>.</p>
+  </section>
+
+  <section id="phases">
+    <h2>5. Bootstrap phases</h2>
+    <p><code>./bootstrap.sh</code> runs the following in order. Each phase is independently runnable via <code>bash scripts/&lt;phase&gt;.sh</code>.</p>
+    <table>
+      <thead><tr><th>#</th><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><code>gen-env.sh</code></td><td>Generates <code>.env</code> with URL-safe random secrets (skipped if file exists)</td></tr>
+        <tr><td>1</td><td><code>setup-hosts.sh</code></td><td>Writes <code>*.local</code> entries to <code>/etc/hosts</code> (GUI prompt on macOS without TTY)</td></tr>
+        <tr><td>2</td><td><code>00-prerequisites.sh</code></td><td>Installs k3d, helm, kubectl, argocd, kubeseal, envsubst; tunes Colima inotify limits; validates <code>.env</code> secrets</td></tr>
+        <tr><td>3</td><td><code>01-create-network.sh</code></td><td>Creates the <code>gitops</code> Docker network (172.20.0.0/24)</td></tr>
+        <tr><td>4</td><td><code>01b-ensure-certs.sh</code></td><td>Generates the Vaultwarden self-signed TLS cert if missing</td></tr>
+        <tr><td>5</td><td><code>02-start-gitea.sh</code></td><td>Brings up gitea + gitea-db + vaultwarden + dnsmasq</td></tr>
+        <tr><td>6</td><td><code>03-configure-gitea.sh</code></td><td>Creates admin user + org + registers the Actions runner</td></tr>
+        <tr><td>7</td><td><code>04-create-k3d-cluster.sh</code></td><td>Creates the 3-node k3d cluster, patches DNS on macOS, waits for kube-system</td></tr>
+        <tr><td>8</td><td><code>05-install-metallb.sh</code></td><td>Installs MetalLB and the IP address pool</td></tr>
+        <tr><td>9</td><td><code>06-install-argocd.sh</code></td><td>Installs ArgoCD via Helm, patches admin password via bcrypt</td></tr>
+        <tr><td>10</td><td><code>07-push-gitops-repo.sh</code></td><td>Renders gitops-repo into a temp dir, pushes to Gitea (source stays templated)</td></tr>
+        <tr><td>11</td><td><code>08-configure-argocd-repo.sh</code></td><td>Registers the Gitea repo secret + restarts repo-server</td></tr>
+        <tr><td>12</td><td><code>09-apply-app-of-apps.sh</code></td><td>Applies the root Application; waits for critical children (cert-manager, keycloak)</td></tr>
+        <tr><td>13</td><td><code>09b-build-portal.sh</code></td><td>Builds + imports the landing portal image into k3d nodes</td></tr>
+        <tr><td>14</td><td><code>10-configure-oidc.sh</code></td><td>Runs the Keycloak realm/client/user bootstrap Job; wires Gitea OIDC</td></tr>
+        <tr><td>15</td><td><code>11-vaultwarden-import.sh</code></td><td>Installs <code>bw</code> CLI, generates <code>vaultwarden-import.json</code> from <code>.env</code></td></tr>
+      </tbody>
+    </table>
+    <p>Claude Code users can invoke any phase via <code>/bootstrap-phase &lt;number&gt;</code> skill.</p>
+  </section>
+
+  <section id="services">
+    <h2>6. Service URLs &amp; credentials</h2>
+    <p>After bootstrap, open the <a class="inline" href="index.html">landing portal</a> for a clickable overview. The table below lists the canonical URLs and where each credential lives.</p>
+    <table>
+      <thead><tr><th>Service</th><th>URL</th><th>User</th><th>Where to find the password</th></tr></thead>
+      <tbody>
+        <tr><td>Landing portal</td><td><code>http://portal.local</code></td><td>—</td><td>—</td></tr>
+        <tr><td>ArgoCD</td><td><code>http://argocd.local</code></td><td><code>admin</code></td><td><code>.env</code> → <code>ARGOCD_ADMIN_PASSWORD</code></td></tr>
+        <tr><td>Gitea</td><td><code>http://gitea.local:3000</code></td><td><code>gitea_admin</code></td><td><code>.env</code> → <code>GITEA_ADMIN_PASSWORD</code></td></tr>
+        <tr><td>Keycloak admin</td><td><code>http://keycloak.local</code></td><td><code>admin</code></td><td><code>.env</code> → <code>KEYCLOAK_ADMIN_PASSWORD</code></td></tr>
+        <tr><td>Grafana</td><td><code>http://grafana.local</code></td><td><code>admin</code></td><td><code>.env</code> → <code>GRAFANA_ADMIN_PASSWORD</code></td></tr>
+        <tr><td>Prometheus</td><td><code>http://prometheus.local</code></td><td>—</td><td>—</td></tr>
+        <tr><td>Vaultwarden</td><td><code>https://localhost:8443</code></td><td>(your master pw)</td><td><code>.env</code> → <code>VAULTWARDEN_ADMIN_TOKEN</code> (admin panel only)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Viewing a password quickly</h3>
+<pre><code># show every credential the bootstrap set
+grep -E '^(.*_PASSWORD|.*_TOKEN|.*_USER)=' .env</code></pre>
+
+    <div class="warn"><strong>Warning</strong>Treat <code>.env</code> as sensitive. It's gitignored, but anything running as your user can read it. If it leaks, regenerate everything with <code>./scripts/gen-env.sh --force</code> and re-bootstrap.</div>
+  </section>
+
+  <section id="vaultwarden">
+    <h2>7. Vaultwarden import</h2>
+    <p>Bootstrap phase 15 generates <code>vaultwarden-import.json</code> in the repo root — a Bitwarden-compatible JSON with every platform credential pre-filled (8 logins + 3 secure notes under a <strong>GitOps Landing Zone</strong> folder).</p>
+
+    <h3>Option A — Web UI</h3>
+    <ol>
+      <li>Open <a class="inline" href="https://localhost:8443">https://localhost:8443</a> (accept the self-signed cert).</li>
+      <li>Click <strong>Create account</strong>, set a strong master password.</li>
+      <li>Log in. Go to <strong>Tools → Import data</strong>.</li>
+      <li>File format: <strong>Bitwarden (json)</strong>.</li>
+      <li>Select <code>vaultwarden-import.json</code>. Click <strong>Import data</strong>.</li>
+    </ol>
+
+    <h3>Option B — bw CLI</h3>
+<pre><code># Self-signed cert — tell bw to skip verification
+export NODE_TLS_REJECT_UNAUTHORIZED=0
+bw config server https://localhost:8443
+
+# Create the account via Option A step 2 first, then:
+bw login &lt;email-you-registered&gt;
+export BW_SESSION=$(bw unlock --raw)
+bw import bitwardenjson vaultwarden-import.json</code></pre>
+
+    <div class="warn"><strong>After importing</strong>delete the plaintext file:
+<pre><code>rm vaultwarden-import.json</code></pre>It's gitignored (won't leak via git) but anything running as your user can still read it from disk.</div>
+  </section>
+
+  <section id="sso">
+    <h2>8. Single sign-on (Keycloak)</h2>
+    <p>Bootstrap creates a <code>gitops</code> realm in Keycloak, wires OIDC clients for both Gitea and ArgoCD, and seeds a test user.</p>
+
+    <h4>Test user</h4>
+    <table>
+      <thead><tr><th>Realm</th><th>Username</th><th>Password</th></tr></thead>
+      <tbody><tr><td><code>gitops</code></td><td><code>dev</code></td><td><code>dev</code></td></tr></tbody>
+    </table>
+
+    <h4>Login flow</h4>
+    <ul>
+      <li>On <strong>ArgoCD</strong>: click <em>LOG IN VIA KEYCLOAK</em>.</li>
+      <li>On <strong>Gitea</strong>: click <em>Sign in with Keycloak</em>.</li>
+      <li>On <strong>Keycloak account console</strong>: <a class="inline" href="http://keycloak.local/realms/gitops/account">keycloak.local/realms/gitops/account</a>.</li>
+    </ul>
+
+    <h4>Adding users to the realm</h4>
+    <ol>
+      <li>Log into Keycloak as <code>admin</code> (see <code>.env</code>).</li>
+      <li>Switch to the <strong>gitops</strong> realm (top-left dropdown).</li>
+      <li><strong>Users → Add user</strong>. Fill in username/email, click <strong>Create</strong>.</li>
+      <li><strong>Credentials</strong> tab → <strong>Set password</strong>. Toggle <em>Temporary</em> off if you want it permanent.</li>
+    </ol>
+    <p>Users can also self-register — registration is enabled on the <code>gitops</code> realm.</p>
+  </section>
+
+  <section id="addapp">
+    <h2>9. Deploy your own application</h2>
+    <p>The full recipe lives in <code>docs/ADD_YOUR_APP.md</code>. Short version:</p>
+    <ol>
+      <li><strong>Copy the template</strong> from <code>gitops-repo/apps-examples/my-app.yaml.example</code> to <code>gitops-repo/apps/my-app.yaml</code> and edit the name/URL/path.</li>
+      <li><strong>Create the matching repo</strong> in the local Gitea (e.g. <code>platform/my-app</code>) and push your Kubernetes manifests.</li>
+      <li><strong>Commit + push</strong> the gitops-repo. Root app-of-apps materialises the Application within seconds.</li>
+      <li><strong>Build + import the image</strong>:
+<pre><code>docker build --platform linux/$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') \
+  -t my-app:dev ./my-app
+docker save my-app:dev -o /tmp/my-app.tar
+for n in k3d-gitops-local-server-0 k3d-gitops-local-agent-0 k3d-gitops-local-agent-1; do
+  docker cp /tmp/my-app.tar "$n:/tmp/my-app.tar"
+  docker exec "$n" ctr -n k8s.io images import /tmp/my-app.tar
+  docker exec "$n" rm /tmp/my-app.tar
+done
+rm /tmp/my-app.tar</code></pre></li>
+      <li><strong>Add a hostname</strong> to <code>/etc/hosts</code>: <code>127.0.0.1 my-app.local</code>. Patch CoreDNS if pods need to reach it.</li>
+    </ol>
+
+    <div class="tip"><strong>Claude Code shortcut</strong>The <code>/docker-build-import</code> skill automates the tarball import loop.</div>
+  </section>
+
+  <section id="lifecycle">
+    <h2>10. Lifecycle</h2>
+
+    <h3 id="restart">Restart</h3>
+    <p><strong>Stop</strong>:</p>
+<pre><code>k3d cluster stop gitops-local
+docker compose -f docker-compose/docker-compose.yml stop</code></pre>
+
+    <p><strong>Start</strong>:</p>
+<pre><code># macOS only: after a machine reboot, start Colima first
+colima start
+
+docker compose -f docker-compose/docker-compose.yml start
+k3d cluster start gitops-local
+
+# Re-patch CoreDNS NodeHosts for gitea.local (wiped on every cluster restart)
+GITEA_IP=$(docker inspect gitea --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+kubectl -n kube-system get cm coredns -o json | \
+  sed "s|\"NodeHosts\": \"|\"NodeHosts\": \"$GITEA_IP gitea.local\\n|" | \
+  kubectl apply -f -
+kubectl -n kube-system rollout restart deploy coredns</code></pre>
+
+    <h3 id="teardown">Teardown</h3>
+<pre><code>./teardown.sh       # Linux / WSL / macOS
+# — or —
+.\teardown.ps1      # Windows (elevated PowerShell)</code></pre>
+    <p>Deletes the k3d cluster and stops the compose stack. <strong>Volumes are preserved</strong> unless you also run <code>docker volume prune</code>. Re-running <code>./bootstrap.sh</code> after a teardown is the supported upgrade path.</p>
+
+    <h3 id="backup">Backup &amp; restore</h3>
+<pre><code>./scripts/backup.sh                             # → backups/backup-YYYY-MM-DD-HHMMSS.tar.gz
+./scripts/restore.sh backups/backup-&lt;date&gt;.tar.gz</code></pre>
+    <p>Backs up: Gitea PostgreSQL dump, Keycloak realm JSON exports, Vaultwarden SQLite, and <code>.env</code>. Extend the <em>CUSTOM</em> section at the bottom of either script to include your own application databases.</p>
+  </section>
+
+  <section id="observability">
+    <h2>11. Observability</h2>
+    <p>The <code>monitoring</code> ArgoCD application deploys the <code>kube-prometheus-stack</code> + <code>loki</code> + <code>promtail</code> Helm charts.</p>
+
+    <h4>Grafana</h4>
+    <ul>
+      <li>URL: <a class="inline" href="http://grafana.local">grafana.local</a> · <code>admin</code> / see <code>.env</code></li>
+      <li>Pre-loaded dashboard: <strong>Landing Zone Overview</strong> (pod counts, node CPU/memory, restart rates, namespace breakdown).</li>
+      <li>Add more dashboards as ConfigMaps with label <code>grafana_dashboard: "1"</code> in the <code>monitoring</code> namespace; the sidecar picks them up automatically.</li>
+    </ul>
+
+    <h4>Prometheus</h4>
+    <ul>
+      <li>URL: <a class="inline" href="http://prometheus.local">prometheus.local</a></li>
+      <li>Retention: 7 days. Edit <code>gitops-repo/apps/monitoring.yaml</code> to change.</li>
+      <li>4 alert groups in <code>gitops-repo/manifests/monitoring/alerts.yaml</code>: pod-health, node-health, argocd, service-health.</li>
+      <li>Alertmanager is disabled by default — enable and point at your notification channel in <code>apps/monitoring.yaml</code>.</li>
+    </ul>
+
+    <h4>Loki + Promtail</h4>
+    <p>Promtail runs as a DaemonSet on every k3d node and forwards pod logs to Loki. Query them in Grafana's <strong>Explore</strong> tab with the <em>Loki</em> data source. LogQL example:</p>
+<pre><code>{namespace="keycloak"} |= "error"</code></pre>
+  </section>
+
+  <section id="security">
+    <h2>12. Security</h2>
+    <ul>
+      <li><strong>No secrets in Git</strong>. <code>.env</code> is gitignored; Kubernetes secrets use Sealed Secrets; <code>gitops-repo/manifests/**</code> is templated with <code>${VAR}</code> placeholders and rendered into a temp dir on push — the source tree never holds resolved secrets.</li>
+      <li><strong>Pre-commit hooks</strong>. <code>scripts/pre-commit-hook.sh</code> runs a gitleaks-style secret scan + YAML validation + Helm lint on every commit. Install them in every local repo with <code>bash scripts/install-hooks.sh</code>.</li>
+      <li><strong>NetworkPolicies</strong>. Default-deny-ingress in every namespace with explicit allowlists for Traefik / OIDC / Prometheus / intra-namespace traffic.</li>
+      <li><strong>Vaultwarden</strong>. Self-hosted password manager with HTTPS (self-signed). Admin panel requires the token from <code>.env</code>.</li>
+      <li><strong>Keycloak OIDC</strong>. SSO for Gitea + ArgoCD. A <code>dev / dev</code> test user is seeded in the <code>gitops</code> realm — remove it before treating this instance as anything production-adjacent.</li>
+    </ul>
+  </section>
+
+  <section id="agents">
+    <h2>13. AI agent federation</h2>
+    <p>The landing zone ships with six Claude Code agents and 12 reusable skills. See the <a class="inline" href="federation.html">federation page</a> for diagram + full agent list.</p>
+    <table>
+      <thead><tr><th>Agent</th><th>Depth</th><th>Owns</th></tr></thead>
+      <tbody>
+        <tr><td>orchestrator</td><td>0</td><td>Top-level dispatch, cross-domain resolution</td></tr>
+        <tr><td>platform-infra</td><td>1</td><td>k3d, Docker, MetalLB, Gitea, ArgoCD, Keycloak</td></tr>
+        <tr><td>cluster-lifecycle</td><td>2</td><td>k3d + MetalLB + CoreDNS + image imports</td></tr>
+        <tr><td>gitea-argocd</td><td>2</td><td>Gitea + ArgoCD + Keycloak OIDC</td></tr>
+        <tr><td>observability</td><td>1</td><td>Prometheus, Grafana, Loki, dashboards, alerts</td></tr>
+        <tr><td>security</td><td>1</td><td>Sealed Secrets, Vaultwarden, RBAC, NetworkPolicies</td></tr>
+      </tbody>
+    </table>
+    <h4>Slash commands (skills)</h4>
+    <p><code>/kubectl-status</code> · <code>/argocd-sync</code> · <code>/docker-build-import</code> · <code>/helm-validate</code> · <code>/kubeseal-secret</code> · <code>/bootstrap-phase</code> · <code>/gitea-api</code> · <code>/keycloak-admin</code> · <code>/kustomize-build</code> · <code>/grafana-dashboard</code> · <code>/cluster-health</code> · <code>/netpol-test</code></p>
+  </section>
+
+  <section id="platform-notes">
+    <h2>14. Platform-specific notes</h2>
+
+    <h3 id="platform-mac">macOS / Colima</h3>
+    <ul>
+      <li><strong>Images build native, no Rosetta required.</strong> <code>scripts/09b-build-portal.sh</code> auto-detects host arch and builds <code>linux/arm64</code> on Apple Silicon, <code>linux/amd64</code> on Intel. Multi-arch images are avoided because <code>ctr import</code> on k3d nodes only handles single-arch manifests.</li>
+      <li><strong>DNS patch.</strong> Colima's internal <code>192.168.5.2</code> resolver is not reachable from the nested <code>gitops</code> Docker bridge, so <code>04-create-k3d-cluster.sh</code> rewrites each node's <code>/etc/resolv.conf</code> to <code>8.8.8.8</code>/<code>1.1.1.1</code>. Docker marks that file user-editable, so the patch persists.</li>
+      <li><strong>inotify tuning.</strong> <code>00-prerequisites.sh</code> writes <code>/etc/sysctl.d/99-k3d-inotify.conf</code> inside the Colima VM. Without it Promtail crashloops with <code>too many open files</code>.</li>
+      <li><strong>.local mDNS quirk.</strong> macOS treats <code>.local</code> as multicast DNS. The <code>/etc/hosts</code> entries work, but the first cold lookup per hostname may take ~5 s before falling back. Subsequent requests are instant. Use <code>curl --resolve portal.local:80:127.0.0.1</code> to bypass entirely.</li>
+      <li><strong>dnsmasq :53 not bound on the host.</strong> The <code>docker-compose.linux.yml</code> override strips it; in-cluster containers still reach dnsmasq at <code>172.20.0.2:53</code>.</li>
+      <li><strong>Docker Compose v2 plugin.</strong> <code>brew install docker-compose</code> ships only the standalone binary — the bootstrap symlinks it into <code>~/.docker/cli-plugins/</code> so the subcommand form works.</li>
+    </ul>
+
+    <h3 id="platform-linux">Linux / WSL2</h3>
+    <ul>
+      <li><strong>systemd-resolved vs. dnsmasq.</strong> The dnsmasq <code>:53</code> host binding conflicts with systemd-resolved, so the <code>docker-compose.linux.yml</code> override drops the port mapping. Same outcome as macOS.</li>
+      <li><strong>WSL2</strong> is detected as <code>wsl</code> by the platform code but treated the same as native Linux. Enable Docker Desktop's WSL2 integration or run Docker Engine directly inside the distro.</li>
+    </ul>
+
+    <h3 id="platform-windows">Windows 11</h3>
+    <ul>
+      <li><strong>Hosts file requires Admin.</strong> <code>bootstrap.ps1</code> relaunches itself with elevation for the first run.</li>
+      <li><strong>MSYS path translation.</strong> When Git Bash passes a Unix path to <code>docker exec</code>, MSYS rewrites it unless you set <code>MSYS_NO_PATHCONV=1</code>. The <code>/docker-build-import</code> skill documents this.</li>
+    </ul>
+  </section>
+
+  <section id="troubleshoot">
+    <h2>15. Troubleshooting</h2>
+
+    <h3>All <code>*.local</code> URLs return <code>000</code> or time out</h3>
+    <ul>
+      <li>Confirm <code>/etc/hosts</code> has the entries: <code>grep gitops-local-dev /etc/hosts</code>.</li>
+      <li>On macOS, cold lookups on <code>.local</code> can wait ~5 s on mDNS — curl with <code>--resolve</code> bypasses it:
+<pre><code>curl --resolve portal.local:80:127.0.0.1 http://portal.local/</code></pre></li>
+      <li>Check Traefik is running and port 80/443 is bound: <code>netstat -an | grep LISTEN | grep '\.80 '</code>.</li>
+    </ul>
+
+    <h3>An ArgoCD Application is stuck OutOfSync</h3>
+<pre><code># Flush the repo-server cache (ArgoCD keeps rendered Helm output ~3 min)
+kubectl -n argocd rollout restart deploy argocd-repo-server
+
+# Then force a hard refresh on the Application
+kubectl annotate application &lt;name&gt; -n argocd \
+  argocd.argoproj.io/refresh=hard --overwrite</code></pre>
+
+    <h3>Promtail pods CrashLoopBackOff with <em>too many open files</em></h3>
+    <p>The Colima VM's inotify limits are too low. Bootstrap tunes them automatically; if you're seeing this on an existing cluster:</p>
+<pre><code>colima ssh -- sudo sh -c '
+cat &gt; /etc/sysctl.d/99-k3d-inotify.conf &lt;&lt;EOF
+fs.inotify.max_user_watches   = 524288
+fs.inotify.max_user_instances = 512
+fs.file-max                   = 524288
+EOF
+sysctl -p /etc/sysctl.d/99-k3d-inotify.conf'
+kubectl -n monitoring rollout restart ds promtail</code></pre>
+
+    <h3>Keycloak pod stuck in startup for 5+ minutes</h3>
+    <p>Quarkus's first-run AOT compile is slow on arm64 — expected, not a failure. Watch progress:</p>
+<pre><code>kubectl logs -n keycloak keycloak-keycloakx-0 --follow</code></pre>
+
+    <h3>Grafana login fails with <em>Invalid username or password</em></h3>
+    <ul>
+      <li>Confirm the live Secret matches <code>.env</code>:
+<pre><code>diff &lt;(grep ^GRAFANA_ADMIN_PASSWORD .env | cut -d= -f2-) \
+     &lt;(kubectl -n monitoring get secret monitoring-grafana \
+        -o jsonpath='{.data.admin-password}' | base64 -d)</code></pre></li>
+      <li>If they diverge, flush ArgoCD's repo-server cache (see above), re-sync <code>monitoring</code>, then restart the Grafana Deployment to re-read its env vars.</li>
+    </ul>
+
+    <h3>Bootstrap fails with <em>Keycloak realm 'gitops' not ready</em></h3>
+    <p>The PostSync Job that creates the realm auto-deletes on success. If you need to re-run it manually after bootstrap finishes:</p>
+<pre><code>kubectl -n keycloak delete job keycloak-configure --ignore-not-found
+bash scripts/10-configure-oidc.sh</code></pre>
+
+    <h3>Need to rotate all secrets</h3>
+<pre><code># Back up first if you care about the data
+./scripts/backup.sh
+
+# Wipe + regenerate
+./teardown.sh
+./scripts/gen-env.sh --force
+./bootstrap.sh</code></pre>
+  </section>
+
+  <section id="extending">
+    <h2>16. Extending further</h2>
+    <ul>
+      <li><strong>Add a domain agent</strong>: drop a file in <code>.claude/agents/my-domain.md</code> following the pattern in <code>platform-infra.md</code>. Claude Code picks it up on next session.</li>
+      <li><strong>Add a Grafana dashboard</strong>: <code>kubectl create configmap my-dashboard --from-file=my-dashboard.json -n monitoring</code> + label <code>grafana_dashboard: "1"</code>.</li>
+      <li><strong>Webhook-based instant sync</strong>: <code>bash scripts/configure-webhooks.sh</code> adds a Gitea webhook for each repo pointing at ArgoCD's <code>/api/webhook</code> — push triggers sync within seconds instead of 3-min polling.</li>
+      <li><strong>Pre-commit hooks in other repos</strong>: <code>bash scripts/install-hooks.sh</code> installs the secret/YAML/helm lint in every local repo under the same parent directory.</li>
+    </ul>
+
+    <h3>Further reading</h3>
+    <ul>
+      <li><a class="inline" href="https://github.com/bogdandragosvasile/gitops-landing-zone/blob/main/README.md">README.md</a> — project overview and quick-start (GitHub-rendered).</li>
+      <li><a class="inline" href="https://github.com/bogdandragosvasile/gitops-landing-zone/blob/main/CLAUDE.md">CLAUDE.md</a> — agent federation design.</li>
+      <li><a class="inline" href="https://github.com/bogdandragosvasile/gitops-landing-zone/blob/main/REPRODUCTION.md">REPRODUCTION.md</a> — detailed bootstrap walkthrough.</li>
+      <li><a class="inline" href="https://github.com/bogdandragosvasile/gitops-landing-zone/blob/main/docs/ADD_YOUR_APP.md">docs/ADD_YOUR_APP.md</a> — deploy a new workload on top of the landing zone.</li>
+      <li><a class="inline" href="https://github.com/bogdandragosvasile/gitops-landing-zone/blob/main/CHANGELOG.md">CHANGELOG.md</a> — release history.</li>
+    </ul>
+  </section>
+
+  </main>
+</div>
+
+<footer class="footer">
+  GitOps Landing Zone &middot; <a href="index.html">Landing Portal</a> &middot; <a href="federation.html">Agent Federation</a> &middot; <a href="https://github.com/bogdandragosvasile/gitops-landing-zone">Source on GitHub</a>
+</footer>
+
+<script>
+(function() {
+  var html = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var icon = document.getElementById('themeIcon');
+  var label = document.getElementById('themeLabel');
+  var stored = localStorage.getItem('portal-theme');
+  if (stored) html.setAttribute('data-theme', stored);
+  function update() {
+    var dark = html.getAttribute('data-theme') !== 'light';
+    icon.textContent = dark ? '\u263E' : '\u2600';
+    label.textContent = dark ? 'Light' : 'Dark';
+  }
+  update();
+  btn.addEventListener('click', function() {
+    var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('portal-theme', next);
+    update();
+  });
+  // Highlight active TOC link as user scrolls
+  var links = document.querySelectorAll('.toc a[href^="#"]');
+  var map = {};
+  links.forEach(function(a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        var link = map[e.target.id];
+        if (!link) return;
+        if (e.isIntersecting) {
+          links.forEach(function(l) { l.classList.remove('active'); });
+          link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    Object.values(map).forEach(function(a) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (el) io.observe(el);
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] — 2026-04-20
+
+### Added
+- **Landing portal user manual** at `http://portal.local/manual.html` (source: `gitops-repo/manifests/portal/src/manual.html`). Self-contained HTML, 16 sections with a sticky TOC sidebar (scroll-spy active highlighting), dark/light theme toggle matching the portal, monospace code blocks, callouts, and tables. Covers:
+  - Prerequisites per OS (Linux / WSL2, macOS, Windows)
+  - Quick start + `gen-env.sh` flow
+  - Architecture diagram + 16-phase bootstrap table
+  - Service URLs, credentials, SSO + dev user
+  - Vaultwarden import (web UI + `bw` CLI)
+  - Deploy-your-own-app recipe
+  - Restart / teardown / backup / restore
+  - Observability (Prometheus, Grafana, Loki + LogQL)
+  - Security, NetworkPolicies, pre-commit hooks
+  - AI agent federation overview
+  - Platform-specific gotchas (Colima DNS patch, inotify tuning, `.local` mDNS, MSYS path translation)
+  - Troubleshooting — 6 common issues with copy-paste fixes
+- **Documentation card on the portal home page** linking to the manual (alongside the existing Agent Federation card).
+
+### Changed
+- `gitops-repo/manifests/portal/src/Dockerfile` now copies `manual.html` into the nginx document root.
+
+---
+
 ## [1.4.2] — 2026-04-20
 
 ### Fixed
