@@ -9,10 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.4.0] — 2026-04-20
+
+### Highlights
+Fully hands-off bootstrap on macOS (Apple Silicon + Intel) via Colima. `git clone && ./bootstrap.sh` now succeeds on a fresh machine with no manual `.env` edits, no TTY required for sudo (GUI admin prompt fallback), and no hard-coded secrets leaking into the landing-zone git history. The BankOffer + CareerForge test workloads have been extracted to the sibling repo [`my-testing-apps`](https://github.com/bogdandragosvasile/my-testing-apps) so this repo is a clean base platform.
+
 ### Added
-- **macOS + Apple Silicon (Colima) support** — platform detection in `scripts/lib/common.sh` now returns `macos`; `PLATFORM_ARCH` auto-detects `amd64`/`arm64`; `is_unix` helper covers Linux/WSL/macOS uniformly.
-- **`bootstrap.sh` / `teardown.sh`** — top-level bash wrappers for Linux/WSL/macOS (complement to the existing PowerShell wrappers on Windows).
-- **`docs/ADD_YOUR_APP.md`** + **`gitops-repo/apps-examples/my-app.yaml.example`** — recipe for adding a new application on top of the landing zone.
+- **macOS + Apple Silicon (Colima) support** — platform detection in `scripts/lib/common.sh` returns `macos`; `PLATFORM_ARCH` auto-detects `amd64`/`arm64`; `is_unix` helper covers Linux/WSL/macOS uniformly; `COMPOSE_FILES` auto-applies `docker-compose.linux.yml` (dnsmasq `:53` drop) on all unix hosts.
+- **`bootstrap.sh` / `teardown.sh`** — top-level bash wrappers for Linux/WSL/macOS. `bootstrap.sh` does a Colima liveness check on macOS and auto-invokes `gen-env.sh` if `.env` is missing.
+- **`scripts/gen-env.sh`** — renders `.env` from `.env.example` with URL-safe random secrets on first bootstrap. All passwords are alphanumeric (no `+`, `/`, `=`) because Keycloak's admin-cli form-urlencoded token request decodes `+` as space; earlier bootstraps failed here with `invalid_grant`.
+- **`scripts/01b-ensure-certs.sh`** — generates Vaultwarden self-signed TLS certs (`docker-compose/certs/vault.{crt,key}`, 10-year validity, SAN `localhost,vault.local,127.0.0.1`) if missing. Fixes vaultwarden compose startup on a fresh clone.
+- **Colima VM sysctl tuning** (`scripts/00-prerequisites.sh`) — writes `/etc/sysctl.d/99-k3d-inotify.conf` inside the Colima VM (`fs.inotify.max_user_watches=524288`, `max_user_instances=512`, `file-max=524288`). Fixes promtail `CrashLoopBackOff: too many open files` on a busy cluster.
+- **`scripts/04-create-k3d-cluster.sh` Colima DNS patch** — on macOS, rewrites each k3d node's `/etc/resolv.conf` to `8.8.8.8`/`1.1.1.1`. Colima's internal `192.168.5.2` resolver is unreachable from the nested `gitops` Docker network; without this, every image pull fails with `dial tcp: lookup <host>: Try again`.
+- **Intra-namespace NetworkPolicy** `allow-intra-keycloak-http` — lets the PostSync keycloak-configure Job reach `keycloakx:8080` in the same namespace (blocked by `default-deny-ingress` previously).
+- **Prometheus ingress NetworkPolicy** `allow-traefik-prometheus-ingress` — fixes 502 on `prometheus.local` (the existing `allow-traefik-ingress` rule only covered Grafana:3000).
+- **Bcrypt-based ArgoCD admin password rotation** — `scripts/06-install-argocd.sh` now patches `argocd-secret.admin.password` with a bcrypt hash of `ARGOCD_ADMIN_PASSWORD` (htpasswd first, `python3 bcrypt` fallback). Zero network dependency; the previous `argocd login` + CLI flow regularly failed on fresh installs.
+- **`docs/ADD_YOUR_APP.md`** + **`gitops-repo/apps-examples/my-app.yaml.example`** — step-by-step recipe and copy-paste Application template for deploying a new workload on top of the landing zone.
+- **Tested-platforms matrix** in README.md; **Platform-specific notes** section covering DNS patch, inotify tuning, `.local` mDNS quirks, Docker CLI plugin symlink, and WSL2 specifics.
 
 ### Changed
 - **Clean base platform** — moved BankOffer AI + CareerForge test applications out to the sibling repo `my-testing-apps`. The landing zone no longer ships any bespoke workloads:
@@ -21,10 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed bespoke `bankoffer.local`/`cf-*.local` entries from `setup-hosts.sh` and the CoreDNS NodeHosts patch.
   - Stripped the BankOffer AI + CareerForge OIDC client blocks from `keycloak/configure-job.yaml` (core Gitea/ArgoCD clients remain).
   - Replaced BankOffer + CareerForge cards in the landing portal with a single "Your App Here" example card.
-- **`scripts/09b-build-portal.sh` — import bug fixes**: use `ctr -n k8s.io images import` (images were previously imported into a nonexistent default namespace); filter k3d nodes by runtime label instead of the non-existent `k3d node list --cluster` flag (5.8.x).
-- **`scripts/04-create-k3d-cluster.sh`** — on macOS (Colima) patches k3d-node `/etc/resolv.conf` to `8.8.8.8`/`1.1.1.1`: the default Colima-internal `192.168.5.2` resolver is unreachable from inside the nested `gitops` Docker network and breaks image pulls.
-- **`scripts/00-prerequisites.sh`** — brew-aware installs on macOS (k3d/helm/kubectl/argocd/kubeseal/gettext); wires the `docker compose` CLI plugin when brew ships only the standalone `docker-compose` binary; arch-aware release URLs when brew is unavailable.
-- **Template hygiene** — `argocd/values.yaml`, `keycloak/values.yaml`, `keycloak/configure-job.yaml` revert secrets and IDs back to `${VAR}` placeholders so `07-push-gitops-repo.sh`'s envsubst step is a clean first-run render.
+- **`scripts/07-push-gitops-repo.sh`** — renders `gitops-repo/` into a fresh `mktemp -d`, pushes that rendered tree to Gitea, and leaves the source checked into the landing-zone repo as pristine `${VAR}` templates. Previous implementation ran envsubst in place and `git add -A` then baked resolved secrets into subsequent commits; re-generating `.env` stopped taking effect for helm-installed components whose values had drifted into hard-coded form.
+- **`scripts/10-configure-oidc.sh`** — explicitly applies the keycloak-configure Job using the same `ENVSUBST_VARS` whitelist as phase 07, waits for `condition=Complete`, then probes the realm from inside the keycloakx pod. Previous implementation relied on the Argo PostSync hook (which self-deletes under `HookSucceeded`) and a plain `envsubst` call that clobbered shell vars (`$KC_URL`, `$KC_ADMIN_USER`) inside the script body, producing a configure script that hung forever on an empty URL.
+- **`scripts/02-start-gitea.sh`** — also brings up `vaultwarden` and `dnsmasq` (previously only `gitea-db` + `gitea`).
+- **`scripts/setup-hosts.sh`** — on macOS without a TTY, falls back to `osascript with administrator privileges` (native GUI prompt) instead of silently failing on `sudo`.
+- **`scripts/09b-build-portal.sh`** — import bug fixes: use `ctr -n k8s.io images import` (previously imported into a nonexistent default containerd namespace); filter k3d nodes by runtime label instead of the non-existent `k3d node list --cluster` flag (k3d 5.8.x).
+- **`scripts/00-prerequisites.sh`** — brew-aware installs on macOS (k3d, helm, kubectl, argocd, kubeseal, gettext); symlinks `docker-compose` into `~/.docker/cli-plugins/` so the v2 subcommand form works when brew ships only the standalone binary; arch-aware release URLs for non-brew hosts; validates `.env` password safety before proceeding.
+- **`scripts/06-install-argocd.sh`** — admin password now set via offline bcrypt patch of `argocd-secret` (see Added section); old CLI-login flow removed.
+- **NetworkPolicy** `allow-apiserver-webhook` in `metallb-system` now targets the correct chart labels (`app.kubernetes.io/name: metallb`, `app.kubernetes.io/component: controller`); previous `app: metallb, component: controller` selector matched nothing → apiserver could never reach the webhook → every IPAddressPool apply returned 502.
+- **Template hygiene** — `argocd/values.yaml`, `keycloak/values.yaml`, `keycloak/configure-job.yaml`, `keycloak-postgres/secret.yaml` revert secrets and IDs back to `${VAR}` placeholders so `07-push-gitops-repo.sh`'s envsubst step is a clean first-run render.
+- **Image build platform** — `scripts/09b-build-portal.sh` and any remaining builders pass `--platform linux/${PLATFORM_ARCH}` so images stay single-arch and `ctr import` on k3d nodes succeeds (multi-arch manifests silently break import).
+- **Docs** — README.md rewritten to lead with Linux/macOS first; prerequisites split into three explicit platform blocks; quick-start is now `./bootstrap.sh` with the ten automated phases enumerated; new Platform-specific notes section covers every gotcha we hit.
+
+### Fixed
+- Bootstrap `keycloak-postgres-secret` hard-coded password caused new `.env` values to be silently ignored — postgres would come up with one password and the keycloakx StatefulSet with another, crashlooping forever with `FATAL: password authentication failed for user "keycloak"`.
+- macOS `/etc/hosts` sudo path failed under non-interactive bootstrap (no TTY → `sudo: a terminal is required to read the password`); now detected and routed through `osascript`.
+- macOS BSD grep lacks `-P`; `scripts/pre-commit-hook.sh` auto-detects `ggrep` and logs a warning if neither is available.
+- Top-level `bootstrap.sh` wrapper no longer hard-fails when `.env` is missing — it triggers `scripts/gen-env.sh` automatically.
 
 ---
 
