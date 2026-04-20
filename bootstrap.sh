@@ -47,15 +47,13 @@ case "$UNAME_S" in
     ;;
 esac
 
-# ── .env check ────────────────────────────────────────────────────────────────
+# ── .env auto-generation ──────────────────────────────────────────────────────
+# If no .env is present, generate one with URL-safe random secrets. This keeps
+# the top-level entry point fully hands-off — no manual editing required.
 if [[ ! -f "$SCRIPT_DIR/.env" ]]; then
-  echo "[bootstrap] No .env found. Copy and fill in the template:"
-  echo ""
-  echo "    cp .env.example .env"
-  echo "    # Edit .env, replace every CHANGE_ME_* with a strong secret"
-  echo "    # (openssl rand -base64 24 for passwords, openssl rand -hex 24 for OIDC secrets)"
-  echo ""
-  exit 1
+  echo "[bootstrap] No .env found — generating one with URL-safe random secrets..."
+  bash "$SCRIPT_DIR/scripts/gen-env.sh"
+  echo "[bootstrap] .env created. Review $SCRIPT_DIR/.env if you want to inspect the generated secrets."
 fi
 
 # Hand off to the master orchestrator.

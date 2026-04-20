@@ -26,7 +26,7 @@ configs:
       name: Keycloak
       issuer: http://keycloak.local/realms/gitops
       clientID: argocd
-      clientSecret: 18cc30bcf8c5cd04cb4e25cdab7ab330d6abb858d7c9cb8e
+      clientSecret: ${OIDC_ARGOCD_CLIENT_SECRET}
       requestedScopes:
         - openid
         - profile
@@ -39,18 +39,18 @@ configs:
 
   repositories:
     gitea-gitops-infra:
-      url: http://gitea:3000/platform/gitops-infra.git
+      url: http://gitea:3000/${GITEA_ORG}/${GITEA_REPO}.git
       name: gitops-infra
       type: git
-      username: "gitea_admin"
-      password: "Xjf0tARw4fjL4zrZin7GOxYWxwExwSvL"
+      username: "${GITEA_ADMIN_USER}"
+      password: "${GITEA_ADMIN_PASSWORD}"
     # Add your application repos below, for example:
     # gitea-my-app:
-    #   url: http://gitea:3000/platform/my-app.git
+    #   url: http://gitea:3000/${GITEA_ORG}/my-app.git
     #   name: my-app
     #   type: git
-    #   username: "gitea_admin"
-    #   password: "Xjf0tARw4fjL4zrZin7GOxYWxwExwSvL"
+    #   username: "${GITEA_ADMIN_USER}"
+    #   password: "${GITEA_ADMIN_PASSWORD}"
 
 controller:
   replicas: 1
