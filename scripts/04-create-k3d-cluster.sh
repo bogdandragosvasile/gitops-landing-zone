@@ -22,6 +22,22 @@ unset KUBECONFIG
 k3d kubeconfig merge "${K3D_CLUSTER_NAME}" --kubeconfig-merge-default --kubeconfig-switch-context
 log_ok "kubectl context: $(kubectl config current-context)"
 
+# Patch k3d node DNS.
+# On macOS + Colima the default nameserver in k3d nodes (e.g. 192.168.5.2,
+# Colima's internal resolver) is unreachable from within the nested `gitops`
+# Docker network — image pulls fail with "dial tcp: lookup <host>: Try again".
+# Docker-generated /etc/resolv.conf is marked as user-editable, so patching
+# it directly is persistent until the node is re-created.
+if [[ "$PLATFORM" == "macos" ]]; then
+  log_info "Patching k3d node DNS for Colima (public resolvers)..."
+  for node in $(k3d node list --cluster "${K3D_CLUSTER_NAME}" -o json 2>/dev/null \
+      | python3 -c "import sys,json; [print(n['name']) for n in json.load(sys.stdin) if 'tools' not in n['name'] and 'serverlb' not in n['name']]" 2>/dev/null); do
+    docker exec "$node" sh -c 'printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\noptions ndots:0\n" > /etc/resolv.conf' \
+      && log_info "  → $node DNS patched" \
+      || log_warn "  → $node DNS patch failed"
+  done
+fi
+
 # Give the API server a moment to start accepting connections
 log_info "Waiting for k3d API server..."
 ELAPSED=0
@@ -73,12 +89,6 @@ ${METALLB_IP_START} gitea.local
 ${METALLB_IP_START} portal.local
 ${METALLB_IP_START} grafana.local
 ${METALLB_IP_START} prometheus.local
-${METALLB_IP_START} bankoffer.local
-${METALLB_IP_START} bankoffer-slides.local
-${METALLB_IP_START} cf-admin.local
-${METALLB_IP_START} cf-coach.local
-${METALLB_IP_START} cf-employee.local
-${METALLB_IP_START} cf-slides.local
 "
   # Write patch file to avoid shell escaping issues
   PATCH_FILE="/tmp/coredns-patch.yaml"

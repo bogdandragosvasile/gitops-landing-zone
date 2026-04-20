@@ -24,7 +24,7 @@ extraEnv: |
   - name: KC_DB_URL
     value: jdbc:postgresql://keycloak-postgres.keycloak.svc.cluster.local:5432/keycloak
   - name: KC_DB_USERNAME
-    value: keycloak
+    value: ${KEYCLOAK_DB_USER}
   - name: KC_DB_PASSWORD
     value: "${KEYCLOAK_DB_PASSWORD}"
 

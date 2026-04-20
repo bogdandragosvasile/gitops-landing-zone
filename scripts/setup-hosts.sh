@@ -12,17 +12,12 @@ ENTRIES=(
   "127.0.0.1 grafana.local"
   "127.0.0.1 prometheus.local"
   "127.0.0.1 vault.local"
-  "127.0.0.1 bankoffer.local"
-  "127.0.0.1 bankoffer-slides.local"
-  "127.0.0.1 cf-admin.local"
-  "127.0.0.1 cf-coach.local"
-  "127.0.0.1 cf-employee.local"
-  "127.0.0.1 cf-slides.local"
 )
 
 log_info "Configuring local DNS via hosts file (platform: $PLATFORM)..."
 
-if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
+if is_unix; then
+  # Linux/WSL/macOS all use /etc/hosts.
   HOSTS_FILE="/etc/hosts"
 
   if grep -q "$MARKER" "$HOSTS_FILE" 2>/dev/null; then
@@ -43,6 +38,15 @@ if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
   for entry in "${ENTRIES[@]}"; do
     log_info "  $entry"
   done
+
+  # On macOS, flush the DNS resolver cache so new entries are picked up
+  # immediately without waiting for mDNSResponder TTL expiry.
+  if [[ "$PLATFORM" == "macos" ]]; then
+    log_info "Flushing macOS DNS cache..."
+    sudo dscacheutil -flushcache 2>/dev/null || true
+    sudo killall -HUP mDNSResponder 2>/dev/null || true
+    log_ok "DNS cache flushed"
+  fi
 
 else
   # Windows: detect the correct hosts file path (Git Bash vs WSL vs MSYS2)

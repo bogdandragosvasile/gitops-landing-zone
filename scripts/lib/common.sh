@@ -6,8 +6,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Ensure user bin directory is on PATH (where k3d/helm/argocd are installed)
-export PATH="$HOME/bin:$PATH"
+# Ensure user bin directory is on PATH (where k3d/helm/argocd are installed).
+# Also include Homebrew prefixes (Apple Silicon: /opt/homebrew, Intel: /usr/local).
+export PATH="$HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # Always use the default kubeconfig (~/.kube/config) so that k3d kubeconfig merge
 # is the single source of truth. Unsetting removes any stale KUBECONFIG env var
@@ -22,24 +23,50 @@ if [[ -f "$PROJECT_ROOT/.env" ]]; then
 fi
 
 # Detect the host platform.
-# Returns: wsl | linux | windows
+# Returns: wsl | linux | macos | windows
 detect_platform() {
+  local uname_s
+  uname_s="$(uname -s 2>/dev/null || echo unknown)"
   if grep -qi microsoft /proc/version 2>/dev/null; then
     echo "wsl"
-  elif [[ "$(uname -s)" == "Linux" ]]; then
+  elif [[ "$uname_s" == "Linux" ]]; then
     echo "linux"
+  elif [[ "$uname_s" == "Darwin" ]]; then
+    echo "macos"
   else
     echo "windows"
   fi
 }
 
+# Detect CPU architecture, normalized for download URLs.
+# Returns: amd64 | arm64
+detect_arch() {
+  local arch
+  arch="$(uname -m 2>/dev/null || echo unknown)"
+  case "$arch" in
+    x86_64|amd64) echo "amd64" ;;
+    aarch64|arm64) echo "arm64" ;;
+    *) echo "amd64" ;;  # fallback
+  esac
+}
+
 PLATFORM="$(detect_platform)"
+PLATFORM_ARCH="$(detect_arch)"
+
+# Helper — true on unix-like platforms (macos + linux + wsl).
+is_unix() {
+  [[ "$PLATFORM" == "macos" || "$PLATFORM" == "linux" || "$PLATFORM" == "wsl" ]]
+}
 
 # Build the docker compose -f flags.
-# On Linux/WSL the linux override removes the dnsmasq port-53 host binding
-# which conflicts with systemd-resolved.
+# On Linux/WSL/macOS the "unix" override removes the dnsmasq port-53 host binding:
+#   - Linux: systemd-resolved conflicts with the bind.
+#   - macOS: mDNSResponder does not use 53, but Colima/Docker Desktop cannot
+#     forward privileged ports reliably and :53 is often already bound.
 COMPOSE_DIR_DEFAULT="$PROJECT_ROOT/docker-compose"
-if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
+if is_unix; then
+  # docker-compose.linux.yml is the legacy name kept for backwards compatibility
+  # (it applies equally to macOS — the override only disables dnsmasq host ports).
   COMPOSE_FILES="-f $COMPOSE_DIR_DEFAULT/docker-compose.yml -f $COMPOSE_DIR_DEFAULT/docker-compose.linux.yml"
 else
   COMPOSE_FILES="-f $COMPOSE_DIR_DEFAULT/docker-compose.yml"

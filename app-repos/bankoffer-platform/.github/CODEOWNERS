@@ -1,8 +1,0 @@
-* @ptx37
-infra/ @ptx37
-services/api/ @ptx37
-services/worker/ @ptx37
-services/notification/ @ptx37
-data/ @ptx37
-ml/ @ptx37
-gitops/ @ptx37

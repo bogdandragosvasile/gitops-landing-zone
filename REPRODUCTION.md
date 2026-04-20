@@ -1,18 +1,43 @@
 # Reproduction Guide
 
-Step-by-step instructions to reproduce the landing zone from a clean Windows 11 + Docker Desktop machine.
+Step-by-step instructions to reproduce the landing zone on Windows 11, Linux/WSL, or macOS (Apple Silicon / Intel).
 
 ## Prerequisites
 
-- Windows 11 with Docker Desktop (>=16 GB RAM allocated to WSL2 / Docker)
+### Windows 11
+- Docker Desktop (≥16 GB RAM allocated to WSL2 / Docker)
 - Git Bash (bundled with Git for Windows)
 - PowerShell (admin rights for first run)
 - ~30 GB free disk space
 
+### Linux / WSL2
+- Docker Engine running (`sudo systemctl start docker`) with ≥16 GB available
+- `bash`, `git`, `curl`, `openssl`, `gettext-base` (`envsubst`), `python3`
+- `sudo` access (for `/etc/hosts` + hosts-file writes)
+- ~30 GB free disk space
+
+### macOS (Intel or Apple Silicon)
+- [Homebrew](https://brew.sh) (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel)
+- [Colima](https://github.com/abiosoft/colima): `brew install colima docker docker-compose`
+- `brew install gettext git curl openssl python@3.12` (plus optional `grep` for `ggrep`)
+- `sudo` access (for `/etc/hosts`)
+- ~30 GB free disk space
+
+Start Colima before running bootstrap:
+
+```bash
+# Default (recommended for Apple Silicon — everything runs arm64 natively):
+colima start --cpu 4 --memory 10 --disk 60
+
+# Apple Silicon with Rosetta (only if you need to run x86_64 images):
+colima start --cpu 4 --memory 10 --disk 60 --vm-type vz --vz-rosetta
+```
+
 ## One-shot bootstrap
 
+### Windows
+
 ```powershell
-# Clone and configure
 git clone https://github.com/bogdandragosvasile/gitops-landing-zone.git
 cd gitops-landing-zone
 cp .env.example .env
@@ -22,7 +47,18 @@ cp .env.example .env
 .\bootstrap.ps1
 ```
 
-`bootstrap.ps1` finds Git Bash and runs `scripts/bootstrap.sh` which executes 11 phases:
+### Linux / WSL / macOS
+
+```bash
+git clone https://github.com/bogdandragosvasile/gitops-landing-zone.git
+cd gitops-landing-zone
+cp .env.example .env
+# Fill in passwords (openssl rand -base64 24 for each)
+
+./bootstrap.sh
+```
+
+`bootstrap.sh` / `bootstrap.ps1` both delegate to `scripts/bootstrap.sh`, which runs these phases:
 
 | # | Script | Purpose |
 |---|---|---|
@@ -141,13 +177,17 @@ See [CLAUDE.md](CLAUDE.md) for the 6-agent hierarchy and 12 skills.
 
 ## Teardown
 
-```powershell
-.\teardown.ps1
+```bash
+./teardown.sh       # Linux / WSL / macOS
+# — or —
+.\teardown.ps1      # Windows (elevated PowerShell)
 ```
 
 Deletes the k3d cluster and stops the compose stack. Volumes preserved. To wipe everything including data: `docker compose down -v && docker volume prune`.
 
 ## Graceful restart
+
+**macOS only:** start Colima first if the machine was rebooted: `colima start`.
 
 **Stop:**
 1. `k3d cluster stop gitops-local`

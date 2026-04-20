@@ -22,4 +22,4 @@ Steps:
    - `keycloak-keycloakx-http.keycloak:80`
 3. Report: which connections succeeded and which were blocked.
 
-Use `MSYS_NO_PATHCONV=1` prefix for kubectl exec/run commands on Windows.
+NOTE: On Windows/Git Bash, prefix `kubectl exec` / `kubectl run` invocations with `MSYS_NO_PATHCONV=1` when passing Unix paths. Not needed on macOS or native Linux.

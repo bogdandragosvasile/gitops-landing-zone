@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bankoffer
-  labels:
-    app.kubernetes.io/part-of: bankoffer
-    app.kubernetes.io/managed-by: kustomize

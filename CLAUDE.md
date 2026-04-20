@@ -2,7 +2,8 @@
 
 ## What is this
 
-A fully reproducible local GitOps development environment on Windows 11 + Docker Desktop.
+A fully reproducible local GitOps development environment.
+Supported hosts: Windows 11 + Docker Desktop, Linux/WSL + Docker Engine, macOS + Colima (Apple Silicon ok).
 Base platform only — deploy your own applications via ArgoCD once the zone is up.
 
 Managed by a 6-agent federation with depth-2 hierarchy, coordinated via `.claude/team-state.json`.
@@ -62,10 +63,12 @@ Add your own applications as ArgoCD Applications. For each domain you add:
 ## Key Invariants
 
 - **CoreDNS NodeHosts wiped on every k3d restart** — re-patch required
-- **k3d image import fails on multi-arch** — use `docker save | ctr import` tarball method
+- **k3d image import fails on multi-arch** — use `docker save | ctr import` tarball method; builds pass single-arch `--platform linux/${PLATFORM_ARCH}` (auto-detected in `common.sh`)
 - **`imagePullPolicy: Always` breaks offline** — use `Never` for locally imported images
 - **ArgoCD operationState caches old revisions** — restart repo-server to flush
 - **Bitnami Docker Hub tags removed** — mirror to local Gitea registry
+- **dnsmasq :53 host bind is dropped on unix** (Linux/WSL/macOS) via `docker-compose.linux.yml` override — the host uses `/etc/hosts`, in-cluster uses `172.20.0.2:53`
+- **macOS requires Colima running** — `colima start` before `./bootstrap.sh`
 
 ## Credentials
 
@@ -75,3 +78,12 @@ All in `.env` (gitignored). Copy `.env.example` to `.env` and fill in.
 
 **Start:** `docker-compose start` → `k3d cluster start` → re-patch CoreDNS + node hosts
 **Stop:** `k3d cluster stop` → `docker-compose stop` (NOT `down -v`)
+
+**macOS add-on:** `colima start` before the Start sequence after a machine reboot.
+
+## Platform detection (`scripts/lib/common.sh`)
+
+- `PLATFORM` = `macos | linux | wsl | windows`
+- `PLATFORM_ARCH` = `amd64 | arm64`
+- `is_unix` helper returns 0 on `macos|linux|wsl`
+- `COMPOSE_FILES` auto-adds `docker-compose.linux.yml` (dnsmasq `:53` drop) on all unix hosts

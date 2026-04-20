@@ -1,5 +1,8 @@
-# Linux / WSL override — applied on top of docker-compose.yml via COMPOSE_FILES in common.sh.
-# Removes the dnsmasq host port-53 binding that conflicts with systemd-resolved on Ubuntu/Debian.
+# Unix override — applied on top of docker-compose.yml via COMPOSE_FILES in common.sh.
+# Despite the legacy filename, this also applies on macOS (Colima / Docker Desktop).
+# Removes the dnsmasq host port-53 binding:
+#   - Linux: conflicts with systemd-resolved on Ubuntu/Debian.
+#   - macOS: Colima cannot forward privileged ports reliably; :53 often bound already.
 # In-cluster DNS still works because containers reach dnsmasq at 172.20.0.2:53.
 # Host-side *.local resolution uses /etc/hosts entries added by setup-hosts.sh.
 

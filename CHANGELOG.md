@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **macOS + Apple Silicon (Colima) support** — platform detection in `scripts/lib/common.sh` now returns `macos`; `PLATFORM_ARCH` auto-detects `amd64`/`arm64`; `is_unix` helper covers Linux/WSL/macOS uniformly.
+- **`bootstrap.sh` / `teardown.sh`** — top-level bash wrappers for Linux/WSL/macOS (complement to the existing PowerShell wrappers on Windows).
+- **`docs/ADD_YOUR_APP.md`** + **`gitops-repo/apps-examples/my-app.yaml.example`** — recipe for adding a new application on top of the landing zone.
+
+### Changed
+- **Clean base platform** — moved BankOffer AI + CareerForge test applications out to the sibling repo `my-testing-apps`. The landing zone no longer ships any bespoke workloads:
+  - Removed `app-repos/`, `gitops-repo/apps/{bankoffer,bankoffer-slides,careerforge,careerforge-slides}.yaml`, `gitops-repo/manifests/{bankoffer,bankoffer-slides,careerforge-slides}/`.
+  - Dropped `scripts/07b-push-app-repos.sh` and `scripts/09c-build-app-images.sh` (phases 07b/09c) from the master bootstrap.
+  - Removed bespoke `bankoffer.local`/`cf-*.local` entries from `setup-hosts.sh` and the CoreDNS NodeHosts patch.
+  - Stripped the BankOffer AI + CareerForge OIDC client blocks from `keycloak/configure-job.yaml` (core Gitea/ArgoCD clients remain).
+  - Replaced BankOffer + CareerForge cards in the landing portal with a single "Your App Here" example card.
+- **`scripts/09b-build-portal.sh` — import bug fixes**: use `ctr -n k8s.io images import` (images were previously imported into a nonexistent default namespace); filter k3d nodes by runtime label instead of the non-existent `k3d node list --cluster` flag (5.8.x).
+- **`scripts/04-create-k3d-cluster.sh`** — on macOS (Colima) patches k3d-node `/etc/resolv.conf` to `8.8.8.8`/`1.1.1.1`: the default Colima-internal `192.168.5.2` resolver is unreachable from inside the nested `gitops` Docker network and breaks image pulls.
+- **`scripts/00-prerequisites.sh`** — brew-aware installs on macOS (k3d/helm/kubectl/argocd/kubeseal/gettext); wires the `docker compose` CLI plugin when brew ships only the standalone `docker-compose` binary; arch-aware release URLs when brew is unavailable.
+- **Template hygiene** — `argocd/values.yaml`, `keycloak/values.yaml`, `keycloak/configure-job.yaml` revert secrets and IDs back to `${VAR}` placeholders so `07-push-gitops-repo.sh`'s envsubst step is a clean first-run render.
+
 ---
 
 ## [1.3.0] — 2026-04-17

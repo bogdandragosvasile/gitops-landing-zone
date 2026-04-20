@@ -6,10 +6,12 @@ allowed-tools: Bash(docker *) Bash(k3d *)
 
 # Docker Build + k3d Import
 
-Build and import an image. Arguments: `<dockerfile-dir> <image:tag> [--platform linux/amd64]`
+Build and import an image. Arguments: `<dockerfile-dir> <image:tag> [--platform linux/<arch>]`
+
+Pass a single-arch `--platform` matching the k3d node arch (host arch: `linux/amd64` on x86_64, `linux/arm64` on Apple Silicon / Colima arm64). Multi-arch manifests break `ctr import`.
 
 Steps:
-1. Build: `docker build -t <image:tag> <dockerfile-dir>`
+1. Build: `docker build --platform linux/$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/') -t <image:tag> <dockerfile-dir>`
 2. Try k3d import first: `k3d image import <image:tag> -c gitops-local`
 3. If k3d import fails (multi-arch digest error), use the tarball method:
    ```bash
@@ -23,4 +25,4 @@ Steps:
    ```
 4. Verify image exists on all nodes: `docker exec <node> crictl images | grep <image-name>`
 
-IMPORTANT: Use `MSYS_NO_PATHCONV=1` prefix for any `docker exec` commands with Unix paths on Windows/Git Bash.
+NOTE: On Windows/Git Bash, prefix `docker exec` invocations that use Unix paths with `MSYS_NO_PATHCONV=1`. Not needed on macOS or native Linux.

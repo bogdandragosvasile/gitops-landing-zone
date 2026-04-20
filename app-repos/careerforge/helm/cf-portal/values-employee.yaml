@@ -1,9 +1,0 @@
-image:
-  repository: gitea.local:3000/platform/careerforge-employee
-  pullPolicy: Never
-  tag: "dev"
-
-fullnameOverride: careerforge-employee
-
-ingress:
-  host: my-career.k8s.openstack.lupulup.com

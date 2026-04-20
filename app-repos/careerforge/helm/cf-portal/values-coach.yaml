@@ -1,9 +1,0 @@
-image:
-  repository: gitea.local:3000/platform/careerforge-coach
-  pullPolicy: Never
-  tag: "dev"
-
-fullnameOverride: careerforge-coach
-
-ingress:
-  host: cc-career.k8s.openstack.lupulup.com

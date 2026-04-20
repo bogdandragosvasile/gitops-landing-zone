@@ -1,10 +1,11 @@
 # GitOps Landing Zone
 
-A fully reproducible local GitOps development environment for Windows 11 + Docker Desktop.
+A fully reproducible local GitOps development environment.
+Runs on **Windows 11 + Docker Desktop**, **Linux/WSL + Docker Engine**, or **macOS + Colima** (Apple Silicon supported).
 Deploy your own applications on top. Everything managed via ArgoCD from a self-hosted Gitea.
 
 ![status](https://img.shields.io/badge/status-ready--to--fork-green)
-![platform](https://img.shields.io/badge/platform-Windows%2011-blue)
+![platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS%20(M%E2%80%90series)-blue)
 ![stack](https://img.shields.io/badge/stack-k3d%20%2B%20ArgoCD%20%2B%20Gitea%20%2B%20Keycloak-red)
 
 ---
@@ -31,7 +32,7 @@ All traffic routed through Traefik ingress with `*.local` hostnames.
 ## Architecture
 
 ```
-Host (Windows 11 + Docker Desktop)
+Host (Windows 11 / Linux / macOS — Colima on Apple Silicon)
 │
 ├── Docker Network: gitops (172.20.0.0/24)
 │   ├── gitea + gitea-db + gitea-runner
@@ -50,24 +51,49 @@ Host (Windows 11 + Docker Desktop)
 
 ## Prerequisites
 
-- **Windows 11** with Docker Desktop (>=16 GB RAM allocated)
-- **Git Bash** (Git for Windows)
-- **PowerShell** (for the elevated wrapper)
-- ~30 GB free disk space
-- Admin rights (to edit the Windows hosts file on first run)
+| Platform | Runtime | Shell | Extras |
+|---|---|---|---|
+| **Windows 11** | Docker Desktop (≥16 GB RAM) | Git Bash + elevated PowerShell | hosts file admin rights |
+| **Linux / WSL2** | Docker Engine | bash | `sudo` for `/etc/hosts` |
+| **macOS (Intel or Apple Silicon)** | Colima (or Docker Desktop) | bash/zsh + Homebrew | `sudo` for `/etc/hosts` |
+
+Common requirements: `git`, `curl`, `openssl`, `envsubst` (macOS: `brew install gettext`), `python3`, and ~30 GB free disk space.
 
 ## Quick start
 
-```powershell
-# 1. Clone the repo
+### macOS (Apple Silicon or Intel)
+
+```bash
+# 1. Start Colima (one-time; re-run after machine reboots)
+colima start --cpu 4 --memory 10 --disk 60
+# Apple Silicon with Rosetta (only needed if you plan to run x86_64 images):
+#   colima start --cpu 4 --memory 10 --disk 60 --vm-type vz --vz-rosetta
+
+# 2. Clone + configure
 git clone https://github.com/bogdandragosvasile/gitops-landing-zone.git
 cd gitops-landing-zone
-
-# 2. Copy the env template and fill in passwords (openssl rand -base64 24)
 cp .env.example .env
-# Edit .env with your favorite editor
+# Edit .env and replace every CHANGE_ME_* value with a strong secret:
+#   openssl rand -base64 24   # passwords
+#   openssl rand -hex 24      # OIDC client secrets
+#   openssl rand -base64 48   # Vaultwarden admin token
 
-# 3. Bootstrap from an ELEVATED PowerShell
+# 3. Bootstrap
+./bootstrap.sh
+```
+
+### Linux / WSL2
+
+```bash
+cp .env.example .env
+# edit .env
+./bootstrap.sh
+```
+
+### Windows 11
+
+```powershell
+# Clone, copy + edit .env as above, then from an ELEVATED PowerShell:
 .\bootstrap.ps1
 ```
 
@@ -77,7 +103,9 @@ Total runtime on first run: ~15-20 minutes.
 
 ```
 gitops-landing-zone/
-├── bootstrap.ps1                 # Entry point (elevated PowerShell wrapper)
+├── bootstrap.sh                  # Entry point for Linux / WSL / macOS (runs scripts/bootstrap.sh)
+├── bootstrap.ps1                 # Entry point for Windows (elevated PowerShell wrapper)
+├── teardown.sh / teardown.ps1    # Matching teardown entry points
 ├── .env.example                  # Template — copy to .env and fill in
 ├── .gitignore                    # Prevents committing .env and other secrets
 ├── .gitleaks.toml                # Secret scanner config for pre-commit hooks
@@ -121,51 +149,35 @@ gitops-landing-zone/
 
 ## Extending with your own applications
 
-1. **Create a repo for your app** (e.g., `myapp-platform`):
-   ```bash
-   # Push to your self-hosted Gitea (not GitHub)
-   git remote add origin http://gitea.local:3000/platform/myapp-platform.git
-   git push -u origin main
-   ```
+See [`docs/ADD_YOUR_APP.md`](docs/ADD_YOUR_APP.md) for the full recipe. In short:
 
-2. **Add an ArgoCD Application** in `gitops-repo/apps/myapp.yaml`:
-   ```yaml
-   apiVersion: argoproj.io/v1alpha1
-   kind: Application
-   metadata:
-     name: myapp
-     namespace: argocd
-   spec:
-     project: dev
-     source:
-       repoURL: http://gitea:3000/platform/myapp-platform.git
-       targetRevision: main
-       path: manifests
-     destination:
-       server: https://kubernetes.default.svc
-       namespace: myapp
-     syncPolicy:
-       automated: {selfHeal: true, prune: true}
-       syncOptions: [CreateNamespace=true]
-   ```
+1. Copy the template `gitops-repo/apps-examples/my-app.yaml.example` to `gitops-repo/apps/my-app.yaml` and edit the name/URL/path.
+2. Create the matching repo (`platform/my-app`) in the local Gitea and push your Kubernetes manifests.
+3. `git push` the gitops-repo — root app-of-apps materializes your Application within seconds.
+4. Build + import the image (`docker build ... | ctr -n k8s.io images import`) — see `.claude/skills/docker-build-import/SKILL.md`.
+5. Add `127.0.0.1 my-app.local` to `/etc/hosts` and, if needed, patch CoreDNS.
 
-3. **Add a domain agent** in `.claude/agents/myapp.md` following the pattern in `platform-infra.md`.
+For a larger app with its own agent, drop a file into `.claude/agents/my-app.md` following the pattern in `.claude/agents/platform-infra.md`.
 
-4. Push both repos. Root app-of-apps picks up the new Application automatically.
+## Example apps (separate repo)
+
+The BankOffer AI + CareerForge workloads that originally lived here have been moved to the sibling repo [`my-testing-apps`](https://github.com/bogdandragosvasile/my-testing-apps). Use that as a reference for a non-trivial multi-service deployment on top of the landing zone; this repo stays a clean base platform.
 
 ## Service URLs
 
 After bootstrap, these resolve to `127.0.0.1` via dnsmasq or hosts file:
 
-| URL | Service |
-|---|---|
-| http://portal.local | Landing portal (overview of everything) |
-| http://argocd.local | ArgoCD UI |
-| http://gitea.local:3000 | Gitea web + API |
-| http://keycloak.local | Keycloak admin |
-| http://grafana.local | Grafana dashboards |
-| http://prometheus.local | Prometheus UI |
-| https://localhost:8443 | Vaultwarden |
+| URL | Service | Credentials |
+|---|---|---|
+| http://portal.local | Landing portal (overview of everything) | — |
+| http://argocd.local | ArgoCD UI | `admin` / see `.env` (`ARGOCD_ADMIN_PASSWORD`) |
+| http://gitea.local:3000 | Gitea web + API | `gitea_admin` / see `.env` (`GITEA_ADMIN_PASSWORD`) |
+| http://keycloak.local | Keycloak admin | `admin` / see `.env` (`KEYCLOAK_ADMIN_PASSWORD`) |
+| http://grafana.local | Grafana dashboards | `admin` / see `.env` (`GRAFANA_ADMIN_PASSWORD`) |
+| http://prometheus.local | Prometheus UI | — |
+| https://localhost:8443 | Vaultwarden | your master password (admin token in `.env`) |
+
+For SSO flows, log in via Keycloak in the `gitops` realm as `dev` / `dev`.
 
 ## Security
 
@@ -206,8 +218,10 @@ See [CLAUDE.md](CLAUDE.md) and the [federation page](http://portal.local/federat
 
 ## Teardown
 
-```powershell
-.\teardown.ps1
+```bash
+./teardown.sh       # Linux / WSL / macOS
+# — or —
+.\teardown.ps1      # Windows (elevated PowerShell)
 ```
 
 Stops the cluster and compose stack. Volumes preserved unless you `docker volume rm ...`.
@@ -217,6 +231,16 @@ Stops the cluster and compose stack. Volumes preserved unless you `docker volume
 **Stop:** `k3d cluster stop gitops-local` → `docker compose -f docker-compose/docker-compose.yml stop`
 
 **Start:** `docker compose ... start` → `k3d cluster start gitops-local` → re-patch CoreDNS NodeHosts for `gitea.local` (wiped on every cluster restart).
+
+**macOS note:** after a machine reboot, also run `colima start` before the compose/k3d steps.
+
+## macOS / Apple Silicon specifics
+
+- **Images built on arm64 stay arm64** — `scripts/09b-build-portal.sh` and `scripts/09c-build-app-images.sh` auto-detect the host arch and pass `--platform linux/arm64` on Apple Silicon, `linux/amd64` on x86_64. Multi-arch images are avoided because `ctr import` on k3d nodes cannot handle multi-arch manifests.
+- **Bitnami images** (e.g. `bitnami/postgresql:16`) are pulled with an explicit single-arch `--platform` for the same reason.
+- **dnsmasq does not bind :53 on the host** — Colima cannot reliably forward privileged ports, and the `docker-compose.linux.yml` override (applied automatically on macOS + Linux + WSL) removes that port binding. Host-side `*.local` resolution uses `/etc/hosts`; in-cluster DNS uses dnsmasq at `172.20.0.2:53`.
+- **GNU grep recommended** — `brew install grep` gives you `ggrep` with `-P` support; the pre-commit secret scanner auto-detects it. Without it the scanner falls back to skipping Perl-regex patterns.
+- **Docker socket** — Colima exposes docker at `~/.colima/default/docker.sock`; `docker context` auto-selects it. The `gitea-runner` container mount of `/var/run/docker.sock` is resolved inside the Colima VM, so no change is needed on the host.
 
 ## Contributing
 

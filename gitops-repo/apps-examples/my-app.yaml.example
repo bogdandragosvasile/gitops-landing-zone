@@ -1,0 +1,33 @@
+# Example ArgoCD Application — copy to ../apps/my-app.yaml and edit.
+#
+# Workflow:
+#   1. Rename this file to `gitops-repo/apps/my-app.yaml` (drop the `.example` suffix).
+#   2. Replace `my-app` with your app name in every occurrence.
+#   3. Commit and push the gitops-repo; root app-of-apps picks up the new
+#      Application automatically within a few seconds.
+#   4. Create the referenced source repo in Gitea (see docs/ADD_YOUR_APP.md).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: dev
+  source:
+    # Internal Gitea URL — ArgoCD repo-server resolves this inside the cluster.
+    repoURL: http://gitea:3000/${GITEA_ORG}/my-app.git
+    targetRevision: main
+    path: manifests           # directory inside the repo containing K8s manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: my-app
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

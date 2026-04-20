@@ -20,8 +20,10 @@ if ! docker ps --filter name=dnsmasq --format '{{.Names}}' | grep -q dnsmasq; th
   exit 1
 fi
 
-if [[ "$PLATFORM" == "wsl" || "$PLATFORM" == "linux" ]]; then
-  # Host resolution via /etc/hosts — validate entries are present
+if is_unix; then
+  # Host resolution via /etc/hosts — validate entries are present.
+  # Applies to Linux/WSL (systemd-resolved conflict blocks :53 host bind)
+  # and macOS (Colima does not reliably forward privileged :53 to the host).
   log_info "Checking /etc/hosts entries..."
   missing=0
   for host in "${HOSTNAMES[@]}"; do

@@ -33,6 +33,21 @@ ok()    { printf "${GRN}[pre-commit] OK:${RST} %s\n" "$*"; }
 FAILED=0
 
 # ──────────────────────────────────────────────
+# Portable grep selection
+# ──────────────────────────────────────────────
+# macOS ships BSD grep which lacks -P (Perl-compatible regex).
+# Prefer GNU grep (ggrep) when installed via Homebrew.
+GREP_BIN="grep"
+if ! echo "" | grep -qP "" 2>/dev/null; then
+  if command -v ggrep &>/dev/null; then
+    GREP_BIN="ggrep"
+  else
+    warn "grep -P not supported on this platform (BSD grep). Secret scanning will be limited."
+    warn "Install GNU grep:  brew install grep  (provides ggrep)"
+  fi
+fi
+
+# ──────────────────────────────────────────────
 # Collect staged files
 # ──────────────────────────────────────────────
 # Only files that are Added, Copied, Modified, or Renamed (not deleted)
@@ -119,9 +134,9 @@ while IFS= read -r file; do
     regex="${entry##*	}"
 
     # grep -P may not exist on all systems; fall back to grep -E for basic patterns
-    if echo "$STAGED_CONTENT" | grep -qP "$regex" 2>/dev/null; then
+    if echo "$STAGED_CONTENT" | "$GREP_BIN" -qP "$regex" 2>/dev/null; then
       # Check against allowlist
-      MATCHES=$(echo "$STAGED_CONTENT" | grep -P "$regex" 2>/dev/null || true)
+      MATCHES=$(echo "$STAGED_CONTENT" | "$GREP_BIN" -P "$regex" 2>/dev/null || true)
       # Filter out allowlisted lines
       REAL_MATCHES=$(echo "$MATCHES" | grep -vE "$ALLOWLIST_PATTERN" || true)
       if [ -n "$REAL_MATCHES" ]; then
