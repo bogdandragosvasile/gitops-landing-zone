@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] — 2026-04-20
+
+### Fixed
+- **Colima Docker daemon DNS** — `scripts/00-prerequisites.sh` now writes `{"dns": ["8.8.8.8", "1.1.1.1"]}` to `/etc/docker/daemon.json` inside the Colima VM and reloads the daemon. The existing k3d-node-level `/etc/resolv.conf` patch handles the freshly-created cluster nodes, but any container (including k3d nodes) created or restarted *after* bootstrap loses the patched resolv.conf. Setting DNS at the daemon level makes the fix survive Docker restarts, Colima restarts, and manual `docker restart` of any k3d container — kube-state-metrics, cert-manager, metallb-controller etc. no longer crashloop with `ImagePullBackOff` or "connection refused to 10.43.0.1:443" after a node is restarted.
+- Added a new troubleshooting entry to the portal user manual covering the "stale kube-proxy iptables after node restart" failure mode and the fix.
+
+---
+
 ## [1.5.0] — 2026-04-20
 
 ### Added

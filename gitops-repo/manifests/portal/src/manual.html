@@ -722,6 +722,18 @@ kubectl -n monitoring rollout restart ds promtail</code></pre>
     <p>Quarkus's first-run AOT compile is slow on arm64 — expected, not a failure. Watch progress:</p>
 <pre><code>kubectl logs -n keycloak keycloak-keycloakx-0 --follow</code></pre>
 
+    <h3>A pod on one specific k3d node keeps restarting with <em>connection refused</em> to 10.43.0.1:443</h3>
+    <p>Kube-proxy on that node has stale iptables rules (usually after a Docker engine restart or manually restarting the k3d container). Symptoms in logs:</p>
+<pre><code>failed to list *v1.Pod: ... dial tcp 10.43.0.1:443: connect: connection refused</code></pre>
+    <p>Fix — restart the affected node's k3d container (non-destructive; pods reschedule):</p>
+<pre><code>docker restart k3d-gitops-local-agent-1
+# then re-patch its DNS (Docker wipes /etc/resolv.conf on restart)
+docker exec k3d-gitops-local-agent-1 sh -c 'printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\noptions ndots:0\n" &gt; /etc/resolv.conf'
+# delete any pods that were crashlooping — they'll reschedule cleanly
+kubectl delete pod -A -l app.kubernetes.io/component=controller \
+  --field-selector=status.phase!=Running,status.phase!=Succeeded</code></pre>
+    <p>Starting from v1.5.1, the bootstrap pins Docker daemon DNS inside the Colima VM so new containers (including k3d nodes after a restart) inherit <code>8.8.8.8</code>/<code>1.1.1.1</code> automatically — you no longer need to re-patch by hand.</p>
+
     <h3>Grafana login fails with <em>Invalid username or password</em></h3>
     <ul>
       <li>Confirm the live Secret matches <code>.env</code>:

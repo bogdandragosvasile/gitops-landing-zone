@@ -52,6 +52,33 @@ EOF
     sysctl -p /etc/sysctl.d/99-k3d-inotify.conf >/dev/null 2>&1 || true
   ' 2>/dev/null && log_ok "Colima VM inotify limits set (persists across reboot)" \
                 || log_warn "Could not tune Colima VM sysctls (non-fatal; promtail may crash)"
+
+  # Colima's default DNS (192.168.5.2 on the lima gateway) is unreachable
+  # from inside nested Docker networks on QEMU, so every docker-run or
+  # k3d-cluster-restart creates containers that can't resolve anything
+  # until we patch /etc/resolv.conf. Set it at the Docker daemon level so
+  # ALL newly-created containers (including k3d nodes after a restart)
+  # inherit public DNS automatically.
+  log_info "Pinning Colima Docker daemon DNS to 8.8.8.8 / 1.1.1.1..."
+  colima ssh -- sudo sh -c '
+    mkdir -p /etc/docker
+    # Merge DNS into existing daemon.json (if any) without overwriting other keys.
+    python3 - <<PY >/tmp/daemon.json 2>/dev/null || cat >/tmp/daemon.json <<JSON
+{"dns": ["8.8.8.8", "1.1.1.1"]}
+JSON
+import json, os, sys
+path = "/etc/docker/daemon.json"
+d = {}
+if os.path.exists(path):
+    try: d = json.load(open(path))
+    except Exception: d = {}
+d["dns"] = ["8.8.8.8", "1.1.1.1"]
+print(json.dumps(d, indent=2))
+PY
+    mv /tmp/daemon.json /etc/docker/daemon.json
+    systemctl reload docker 2>/dev/null || systemctl restart docker 2>/dev/null || true
+  ' 2>/dev/null && log_ok "Colima docker daemon DNS pinned" \
+                || log_warn "Could not pin Colima daemon DNS (non-fatal; k3d-node-level patch still runs)"
 fi
 
 # ── Validate .env password safety ──────────────────────────────────────────────
