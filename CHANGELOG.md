@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 11 — Vaultwarden import helper (`scripts/11-vaultwarden-import.sh`)**.
+  After Keycloak finishes, bootstrap now installs the Bitwarden CLI (`bw`) via the pre-built zip from `vault.bitwarden.com` (seconds, vs. 10+ min `brew install bitwarden-cli` compiles from source on arm64), renders `vaultwarden-import.json` from the current `.env` (8 logins + 3 secure notes covering ArgoCD, Gitea, Keycloak admin, Keycloak dev SSO user, Grafana, Prometheus, Portal, Vaultwarden admin token, both internal PostgreSQL DBs, and the two OIDC client secrets), and prints step-by-step instructions for importing via the Vaultwarden web UI **or** the `bw` CLI.
+  The JSON is gitignored (`vaultwarden-import*.json`, `bitwarden-export*.json` added to `.gitignore`) and the final Bootstrap Complete banner points the user at it.
+
 ---
 
 ## [1.4.0] — 2026-04-20

@@ -19,6 +19,10 @@ backups/
 *.sql.gz
 *.dump
 
+# Vaultwarden / Bitwarden import / export files (plaintext secrets)
+vaultwarden-import*.json
+bitwarden-export*.json
+
 # Runtime state
 .claude/team-state.json
 .claude/audit.log
