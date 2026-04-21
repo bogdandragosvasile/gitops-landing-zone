@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] — 2026-04-21
+
+### Added
+- **Headscale app** — self-hosted Tailscale control plane deployed via the app-of-apps pattern. New Gitea repo `platform/headscale` with namespace + PVC + ConfigMap + Deployment + Service (ClusterIP for API, LoadBalancer for DERP UDP 3478) + Ingress at `http://headscale.local`. Includes helper scripts (`scripts/create-user.sh`, `scripts/create-preauth.sh`) and a README covering phone registration, subnet-router mode for reaching the landing zone from mobile, and the Cloudflare Tunnel path for cross-internet demos.
+- **`scripts/resume.sh`** — idempotent resume flow after a `colima stop` / `./teardown.sh` cycle. Starts Colima + compose + k3d, re-applies the transient fixes that don't survive a Docker-daemon restart (k3d node `/etc/resolv.conf`, CoreDNS NodeHosts for `gitea.local`), cleans up ghost Pending pods. Fixes the gap where v1.5.1's daemon-DNS pin only ran on first bootstrap — this runs on every resume.
+- **Portal card** for Headscale under *Your Applications*.
+- `headscale.local` baked into `scripts/setup-hosts.sh` and CoreDNS NodeHosts patch in `scripts/04-create-k3d-cluster.sh`.
+- ArgoCD repo registration for `platform/headscale` in `gitops-repo/manifests/argocd/values.yaml`.
+
+---
+
 ## [1.6.0] — 2026-04-20
 
 ### Added

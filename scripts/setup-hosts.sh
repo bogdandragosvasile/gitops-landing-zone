@@ -13,6 +13,7 @@ ENTRIES=(
   "127.0.0.1 prometheus.local"
   "127.0.0.1 vault.local"
   "127.0.0.1 industry40.local"
+  "127.0.0.1 headscale.local"
 )
 
 log_info "Configuring local DNS via hosts file (platform: $PLATFORM)..."
