@@ -199,6 +199,16 @@ gitops-landing-zone/
     └── settings.json                # Permissions + audit hooks
 ```
 
+## Documentation
+
+| Doc | When to read it |
+|---|---|
+| [`docs/MANUAL.md`](docs/MANUAL.md) | Full user manual — prerequisites, quick start, URLs, lifecycle, Headscale, troubleshooting. Same content served at `http://portal.local/manual.html` after bootstrap |
+| [`docs/ADD_YOUR_APP.md`](docs/ADD_YOUR_APP.md) | Recipe for deploying your own application on top of the landing zone |
+| [`CLAUDE.md`](CLAUDE.md) | AI agent federation overview |
+| [`REPRODUCTION.md`](REPRODUCTION.md) | Detailed bootstrap walkthrough |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+
 ## Extending with your own applications
 
 See [`docs/ADD_YOUR_APP.md`](docs/ADD_YOUR_APP.md) for the full recipe. In short:
