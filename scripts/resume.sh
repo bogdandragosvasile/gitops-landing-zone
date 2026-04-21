@@ -99,20 +99,42 @@ for node in $NODES; do
     && log_info "  $node: DNS patched"
 done
 
-# ── 5. Re-patch CoreDNS NodeHosts for gitea.local ────────────────────────────
+# ── 5. Restart dnsmasq + re-patch CoreDNS NodeHosts for gitea.local ──────────
+# dnsmasq sometimes comes back from a Docker-daemon reload in an unresponsive
+# state (listens on :53 but doesn't answer). CoreDNS forwards to it for
+# *.local names, so if dnsmasq is dead CoreDNS can't resolve external
+# hostnames via the forward chain either. Proactively bounce both.
+if docker ps --filter name=dnsmasq --filter status=running -q | grep -q .; then
+  log_info "Restarting dnsmasq container..."
+  docker restart dnsmasq >/dev/null 2>&1 || true
+fi
+
 GITEA_IP=$(docker inspect gitea --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
 if [[ -n "$GITEA_IP" ]]; then
   log_info "Patching CoreDNS NodeHosts: gitea.local → $GITEA_IP..."
   kubectl -n kube-system get cm coredns -o json \
     | sed "s|\"NodeHosts\": \"|\"NodeHosts\": \"$GITEA_IP gitea.local\\n|" \
     | kubectl apply -f - >/dev/null 2>&1
-  kubectl -n kube-system rollout restart deploy coredns >/dev/null 2>&1 || true
-  log_ok "CoreDNS patched"
 fi
+log_info "Restarting CoreDNS to flush cache + reload upstream..."
+kubectl -n kube-system rollout restart deploy coredns >/dev/null 2>&1 || true
+kubectl -n kube-system rollout status deploy coredns --timeout=60s >/dev/null 2>&1 && log_ok "CoreDNS ready"
 
-# ── 6. Clear any ghost pods from the pre-stop state ──────────────────────────
-log_info "Cleaning up ghost Pending pods from pre-stop state..."
+# ── 6. Clear ghost pods + bounce anything CrashLoopBackOff ───────────────────
+# After a stop/start cycle, some pods from the pre-stop state end up stuck
+# Terminating or CrashLoopBackOff. Clean them so kubelet can schedule fresh.
+log_info "Cleaning up stuck pods from pre-stop state..."
 kubectl delete pod -A --field-selector=status.phase=Pending --ignore-not-found >/dev/null 2>&1 || true
+# Force-remove Terminating ghosts
+kubectl get pods -A -o jsonpath='{range .items[?(@.metadata.deletionTimestamp)]}{.metadata.namespace} {.metadata.name}{"\n"}{end}' 2>/dev/null \
+  | while read -r ns name; do
+      [[ -n "$name" ]] && kubectl -n "$ns" delete pod "$name" --force --grace-period=0 >/dev/null 2>&1 || true
+    done
+# Bounce CrashLoopBackOff so they land cleanly with the now-healthy DNS
+kubectl get pods -A --no-headers 2>/dev/null | awk '$4=="CrashLoopBackOff"{print $1, $2}' \
+  | while read -r ns name; do
+      [[ -n "$name" ]] && kubectl -n "$ns" delete pod "$name" --ignore-not-found >/dev/null 2>&1 || true
+    done
 
 log_ok "Resume complete"
 log_info "  kubectl get applications -n argocd   # watch ArgoCD sync as things re-converge"
