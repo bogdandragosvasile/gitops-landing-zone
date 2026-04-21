@@ -26,7 +26,7 @@ configs:
       name: Keycloak
       issuer: http://keycloak.local/realms/gitops
       clientID: argocd
-      clientSecret: ${OIDC_ARGOCD_CLIENT_SECRET}
+      clientSecret: 457c90e982c099e5b76276f4248f3cd1483174aae98d6826
       requestedScopes:
         - openid
         - profile
@@ -39,30 +39,23 @@ configs:
 
   repositories:
     gitea-gitops-infra:
-      url: http://gitea:3000/${GITEA_ORG}/${GITEA_REPO}.git
+      url: http://gitea:3000/platform/gitops-infra.git
       name: gitops-infra
       type: git
-      username: "${GITEA_ADMIN_USER}"
-      password: "${GITEA_ADMIN_PASSWORD}"
-    gitea-industry40:
-      url: http://gitea:3000/${GITEA_ORG}/industry40.git
-      name: industry40
+      username: "gitea_admin"
+      password: "0h6i8DV+2VKGYmNNpDbSypvYHo0BohrR"
+    gitea-bankoffer-platform:
+      url: http://gitea:3000/platform/bankoffer-platform.git
+      name: bankoffer-platform
       type: git
-      username: "${GITEA_ADMIN_USER}"
-      password: "${GITEA_ADMIN_PASSWORD}"
-    gitea-headscale:
-      url: http://gitea:3000/${GITEA_ORG}/headscale.git
-      name: headscale
+      username: "gitea_admin"
+      password: "0h6i8DV+2VKGYmNNpDbSypvYHo0BohrR"
+    gitea-careerforge:
+      url: http://gitea:3000/platform/careerforge.git
+      name: careerforge
       type: git
-      username: "${GITEA_ADMIN_USER}"
-      password: "${GITEA_ADMIN_PASSWORD}"
-    # Add your own application repos below, for example:
-    # gitea-my-app:
-    #   url: http://gitea:3000/${GITEA_ORG}/my-app.git
-    #   name: my-app
-    #   type: git
-    #   username: "${GITEA_ADMIN_USER}"
-    #   password: "${GITEA_ADMIN_PASSWORD}"
+      username: "gitea_admin"
+      password: "0h6i8DV+2VKGYmNNpDbSypvYHo0BohrR"
 
 controller:
   replicas: 1

@@ -18,7 +18,10 @@ extraEnv: |
   - name: KEYCLOAK_ADMIN
     value: admin
   - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-    value: "${KEYCLOAK_ADMIN_PASSWORD}"
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: password
   - name: KC_DB
     value: postgres
   - name: KC_DB_URL
@@ -26,7 +29,10 @@ extraEnv: |
   - name: KC_DB_USERNAME
     value: ${KEYCLOAK_DB_USER}
   - name: KC_DB_PASSWORD
-    value: "${KEYCLOAK_DB_PASSWORD}"
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-postgres-secret
+        key: password
 
 ingress:
   enabled: true

@@ -115,6 +115,8 @@ services:
     environment:
       - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
       - SIGNUPS_ALLOWED=true
+      - SIGNUPS_VERIFIED=false
+      - REQUIRE_DEVICE_EMAIL=false
       - DOMAIN=https://localhost:8443
       - ROCKET_TLS={certs="/ssl/vault.crt",key="/ssl/vault.key"}
       - ROCKET_PORT=443
