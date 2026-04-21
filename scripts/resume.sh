@@ -67,19 +67,37 @@ done
 kubectl wait --for=condition=Ready nodes --all --timeout=120s >/dev/null 2>&1 || true
 log_ok "All nodes ready"
 
-# ── 4. Re-patch k3d node DNS (Docker wipes /etc/resolv.conf on container start) ─
-if [[ "$PLATFORM" == "macos" ]]; then
-  log_info "Re-patching k3d node DNS for Colima..."
-  for node in $(k3d node list -o json 2>/dev/null \
-      | python3 -c "import sys,json
+# ── 4. Per-node fix-ups (DNS + containerd health) ─────────────────────────────
+# Docker-daemon restarts sometimes leave k3d agent nodes with a broken
+# containerd socket ("connection refused" from ctr/kube-proxy) or a
+# blank /etc/resolv.conf. Probe each node; re-patch DNS always, and
+# fully restart the container if containerd is unhealthy.
+probe_containerd() {
+  timeout 5 docker exec "$1" ctr version >/dev/null 2>&1
+}
+
+NODES=$(k3d node list -o json 2>/dev/null \
+  | python3 -c "import sys,json
 for n in json.load(sys.stdin):
     if n.get('role') not in ('server','agent'): continue
     if n.get('runtimeLabels',{}).get('k3d.cluster') != '${K3D_CLUSTER_NAME}': continue
-    print(n['name'])" 2>/dev/null); do
-    docker exec "$node" sh -c 'printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\noptions ndots:0\n" > /etc/resolv.conf' \
-      && log_info "  → $node DNS patched"
-  done
-fi
+    print(n['name'])" 2>/dev/null)
+
+for node in $NODES; do
+  if probe_containerd "$node"; then
+    log_info "  $node: containerd ok"
+  else
+    log_warn "  $node: containerd unhealthy — recycling container"
+    docker restart "$node" >/dev/null 2>&1 || true
+    # Wait for containerd to come back
+    for _ in $(seq 1 20); do
+      probe_containerd "$node" && break
+      sleep 3
+    done
+  fi
+  docker exec "$node" sh -c 'printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\noptions ndots:0\n" > /etc/resolv.conf' \
+    && log_info "  $node: DNS patched"
+done
 
 # ── 5. Re-patch CoreDNS NodeHosts for gitea.local ────────────────────────────
 GITEA_IP=$(docker inspect gitea --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)

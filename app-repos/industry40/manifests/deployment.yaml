@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: industry40
+  namespace: industry40
+  labels:
+    app: industry40
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: industry40
+  template:
+    metadata:
+      labels:
+        app: industry40
+    spec:
+      containers:
+        - name: nginx
+          image: industry40:dev
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

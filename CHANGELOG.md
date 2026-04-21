@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.0] — 2026-04-21
+
+### Added
+- **`app-repos/` — bundled demo-app sources.** Headscale and Industry 4.0 source trees (Dockerfiles, manifests, helper scripts, README) now ship inside the landing-zone repo under `app-repos/headscale/` and `app-repos/industry40/`. Previously only the `Application` manifests pointed at `platform/*` Gitea repos that had to be created by hand — blocking fresh Linux/Windows clones from deploying them.
+- **`scripts/07b-mirror-app-repos.sh` — new bootstrap phase 07b.** Iterates `app-repos/*/`, creates the Gitea repo under `platform/` if missing, renders a fresh tarball into a temp dir, `git init` + force-push to Gitea. Wired into `scripts/bootstrap.sh` right after phase 07.
+- **`scripts/09c-build-demo-images.sh` — new bootstrap phase 09c.** Looks for `app-repos/*/build.sh` and runs each. Apps that use a public image (like Headscale) are silently skipped. Lets industry40 build + import its nginx+HTML image offline on every fresh bootstrap.
+
+### Changed
+- **`scripts/resume.sh` — per-node containerd health probe.** Runs `docker exec <node> ctr version` with a timeout; if containerd is unresponsive (common after a Docker-daemon reload), restarts the k3d node container and waits for containerd to come back. Fixes the `"connection refused" on /run/k3s/containerd/containerd.sock` failure mode where image builds or image pulls mysteriously hang on one node after a Colima restart.
+
+### Notes on the offline story
+Combined with v1.5.1 (Colima daemon DNS pin) + v1.7.0 (`resume.sh`), a fresh clone on Linux/WSL/macOS/Windows now deploys Headscale and Industry 4.0 end-to-end with no manual `curl -X POST /orgs/.../repos` or image-build steps — everything goes via the bundled `app-repos/` + the two new phases.
+
+---
+
 ## [1.7.1] — 2026-04-21
 
 ### Added

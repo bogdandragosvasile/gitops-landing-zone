@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale
+  namespace: headscale
+  labels:
+    app: headscale
+spec:
+  selector:
+    app: headscale
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+    - name: grpc
+      port: 50443
+      targetPort: 50443
+---
+# Separate Service for the DERP STUN port — needs UDP + single port.
+# Exposed via MetalLB so a phone on the same LAN (via Colima networking)
+# can reach the STUN endpoint for NAT probing.
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale-derp
+  namespace: headscale
+  labels:
+    app: headscale
+    component: derp
+spec:
+  type: LoadBalancer
+  selector:
+    app: headscale
+  ports:
+    - name: stun
+      port: 3478
+      targetPort: 3478
+      protocol: UDP

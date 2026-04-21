@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industry 4.0 — the fourth industrial revolution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --bg: #0D1B2A;
+  --fg: #F1FAEE;
+  --fg-muted: rgba(241,250,238,0.62);
+  --fg-faint: rgba(241,250,238,0.35);
+  --card-border: rgba(241,250,238,0.15);
+  --card-bg: rgba(241,250,238,0.03);
+  --card-hover-bg: rgba(244,211,94,0.05);
+  --code-bg: rgba(241,250,238,0.05);
+  --code-border: rgba(241,250,238,0.1);
+  --table-border: rgba(241,250,238,0.15);
+  --table-head-bg: rgba(244,211,94,0.08);
+  --quote-bg: rgba(69,123,157,0.1);
+  --cf-red: #E63946;
+  --cf-blue: #1D3557;
+  --cf-blue-mid: #457B9D;
+  --cf-yellow: #F4D35E;
+  --cf-white: #F1FAEE;
+  --cf-black: #0D1B2A;
+  --cf-green: #2A9D8F;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+[data-theme="light"] {
+  --bg: #F1FAEE;
+  --fg: #0D1B2A;
+  --fg-muted: rgba(13,27,42,0.65);
+  --fg-faint: rgba(13,27,42,0.35);
+  --card-border: rgba(13,27,42,0.2);
+  --card-bg: rgba(13,27,42,0.03);
+  --card-hover-bg: rgba(29,53,87,0.06);
+  --code-bg: rgba(13,27,42,0.06);
+  --code-border: rgba(13,27,42,0.12);
+  --table-border: rgba(13,27,42,0.15);
+  --table-head-bg: rgba(244,211,94,0.2);
+  --quote-bg: rgba(69,123,157,0.08);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  transition: background 0.3s, color 0.3s;
+  scroll-behavior: smooth;
+}
+html { scroll-padding-top: 96px; }
+
+.topbar {
+  background: var(--cf-blue);
+  border-bottom: 4px solid var(--cf-red);
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-content { text-align: center; }
+.topbar h1 {
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cf-white);
+}
+.topbar h1 span { color: var(--cf-yellow); }
+.topbar .crumbs {
+  font-size: 0.72rem;
+  color: rgba(241,250,238,0.65);
+  margin-top: 0.25rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.topbar a { color: var(--cf-yellow); text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+.theme-toggle {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 2px solid rgba(241,250,238,0.3);
+  color: var(--cf-white);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.theme-toggle:hover { border-color: var(--cf-yellow); background: rgba(244,211,94,0.15); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+
+.hero {
+  border: 2px solid var(--cf-yellow);
+  background: rgba(244,211,94,0.08);
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+}
+.hero h2 {
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+}
+.hero h2 .accent { color: var(--cf-red); }
+.hero p { font-size: 1.02rem; color: var(--fg-muted); line-height: 1.6; max-width: 780px; }
+.hero .tagline {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--cf-blue-mid);
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-weight: 900;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--cf-red);
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--cf-red);
+}
+
+p { line-height: 1.65; margin: 0.75rem 0; }
+p.lead { font-size: 1.02rem; color: var(--fg-muted); }
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+  border-left: 3px solid var(--cf-blue-mid);
+  margin: 1rem 0 2rem;
+}
+.era {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+.era:last-child { margin-bottom: 0; }
+.era::before {
+  content: "";
+  position: absolute;
+  left: -2.55rem;
+  top: 0.3rem;
+  width: 18px;
+  height: 18px;
+  background: var(--bg);
+  border: 3px solid var(--cf-red);
+  border-radius: 50%;
+}
+.era[data-dot="blue"]::before   { border-color: var(--cf-blue-mid); }
+.era[data-dot="yellow"]::before { border-color: var(--cf-yellow); }
+.era[data-dot="green"]::before  { border-color: var(--cf-green); }
+
+.era-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+.era-num {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cf-yellow);
+  background: rgba(244,211,94,0.12);
+  padding: 2px 8px;
+  border: 1px solid rgba(244,211,94,0.3);
+}
+.era-title {
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: var(--fg);
+}
+.era-years {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--cf-blue-mid);
+  font-weight: 500;
+}
+.era-subtitle {
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: var(--fg-muted);
+  margin-bottom: 0.75rem;
+}
+.era p { font-size: 0.95rem; color: var(--fg-muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.fact {
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  padding: 1rem 1.15rem;
+}
+.fact-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--cf-blue-mid);
+  margin-bottom: 0.3rem;
+}
+.fact-value { font-weight: 700; font-size: 1rem; color: var(--fg); }
+.fact-note { font-size: 0.78rem; color: var(--fg-muted); margin-top: 0.25rem; line-height: 1.45; }
+
+blockquote {
+  border-left: 3px solid var(--cf-red);
+  background: var(--quote-bg);
+  padding: 0.9rem 1.2rem;
+  margin: 1rem 0 1.2rem;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+blockquote cite {
+  display: block;
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  margin-top: 0.4rem;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1rem 0 1.2rem;
+  font-size: 0.88rem;
+  width: 100%;
+}
+th, td {
+  border: 1px solid var(--table-border);
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--table-head-bg);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0 2rem;
+}
+.pillar {
+  border: 1px solid var(--card-border);
+  border-left: 3px solid var(--cf-yellow);
+  background: var(--card-bg);
+  padding: 1rem 1.15rem;
+}
+.pillar h4 {
+  font-weight: 700;
+  font-size: 0.98rem;
+  margin-bottom: 0.35rem;
+  color: var(--cf-yellow);
+}
+[data-theme="light"] .pillar h4 { color: var(--cf-red); }
+.pillar p { font-size: 0.85rem; color: var(--fg-muted); margin: 0; line-height: 1.5; }
+
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--fg-faint);
+  border-top: 2px solid var(--card-border);
+  margin-top: 2rem;
+}
+.footer a { color: var(--cf-blue-mid); text-decoration: none; }
+.footer a:hover { color: var(--cf-yellow); }
+
+a.ref {
+  color: var(--cf-blue-mid);
+  text-decoration: underline;
+  text-decoration-color: rgba(69,123,157,0.4);
+}
+a.ref:hover { color: var(--cf-yellow); }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border: 1px solid var(--code-border);
+  color: var(--cf-yellow);
+}
+[data-theme="light"] code { color: var(--cf-red); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-content">
+    <h1>Industry <span>4.0</span></h1>
+    <p class="crumbs"><a href="http://portal.local">Landing Portal</a> &nbsp;·&nbsp; History of the Industrial Revolutions</p>
+  </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light theme">
+    <span class="icon" id="themeIcon">&#9790;</span>
+    <span id="themeLabel">Light</span>
+  </button>
+</header>
+
+<div class="container">
+
+  <section class="hero">
+    <div class="tagline">A brief history · four revolutions · one continuing arc</div>
+    <h2>From the steam engine to the <span class="accent">cyber-physical system</span></h2>
+    <p>Every industrial revolution has been a collision between a new source of power and a new way of organising work. Water and steam gave us the factory. Electricity and the assembly line gave us mass production. Electronics and computing gave us automation. And now networked sensors, cloud platforms, and learning algorithms are giving us factories that adapt and negotiate with themselves — <strong>Industry 4.0</strong>.</p>
+  </section>
+
+  <div class="section-title">The four revolutions at a glance</div>
+  <table>
+    <thead>
+      <tr><th>Era</th><th>Approx. years</th><th>Defining technology</th><th>Organising idea</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Industry 1.0</strong></td><td>1760 &ndash; 1840</td><td>Steam + water power, mechanical looms</td><td>The factory system</td></tr>
+      <tr><td><strong>Industry 2.0</strong></td><td>1870 &ndash; 1914</td><td>Electricity, assembly line, steel, chemicals</td><td>Mass production</td></tr>
+      <tr><td><strong>Industry 3.0</strong></td><td>1960 &ndash; 2000</td><td>Semiconductors, PLCs, computers, robotics</td><td>Programmable automation</td></tr>
+      <tr><td><strong>Industry 4.0</strong></td><td>2011 &ndash; present</td><td>IoT, cloud, AI/ML, digital twins, 5G</td><td>Cyber-physical systems</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Timeline</div>
+  <div class="timeline">
+
+    <div class="era" data-dot="red">
+      <div class="era-head">
+        <span class="era-num">1.0</span>
+        <span class="era-title">Mechanisation</span>
+        <span class="era-years">~1760 &ndash; 1840</span>
+      </div>
+      <p class="era-subtitle">Steam, water, and the birth of the factory</p>
+      <p>The first industrial revolution began in Britain in the late 18th century. James Watt's improved steam engine (patented 1769), Richard Arkwright's water-powered cotton mill (Cromford, 1771), and Edmund Cartwright's power loom (1785) shifted production out of artisan workshops and into centralised factories. Cities swelled, rail networks knitted the country together, and for the first time human output was decoupled from muscle and daylight.</p>
+      <div class="grid">
+        <div class="fact"><div class="fact-label">Power</div><div class="fact-value">Steam &amp; water</div><div class="fact-note">From ~10 hp in early engines to 200+ hp by 1840.</div></div>
+        <div class="fact"><div class="fact-label">Output unit</div><div class="fact-value">The factory</div><div class="fact-note">Manchester cotton mills grew 10&times; 1800&ndash;1840.</div></div>
+        <div class="fact"><div class="fact-label">Network</div><div class="fact-value">Railways + canals</div><div class="fact-note">Stockton &amp; Darlington Rly, 1825 — first public steam railway.</div></div>
+      </div>
+    </div>
+
+    <div class="era" data-dot="blue">
+      <div class="era-head">
+        <span class="era-num">2.0</span>
+        <span class="era-title">Mass production</span>
+        <span class="era-years">~1870 &ndash; 1914</span>
+      </div>
+      <p class="era-subtitle">Electricity, the assembly line, and standardised interchangeable parts</p>
+      <p>The second revolution wired the world. Thomas Edison and Nikola Tesla brought affordable electric light and long-distance AC transmission; Frederick Winslow Taylor codified "scientific management"; and in 1913 Henry Ford installed the moving assembly line at the Highland Park plant, cutting Model T chassis assembly time from 12.5 hours to about 90 minutes. Steel from Bessemer converters, synthetic dyes from German chemistry, and the internal combustion engine transformed the material base of the economy.</p>
+      <blockquote>
+        "I will build a motor car for the great multitude."
+        <cite>— Henry Ford, announcing the Model T, 1908</cite>
+      </blockquote>
+      <div class="grid">
+        <div class="fact"><div class="fact-label">Power</div><div class="fact-value">Electricity</div><div class="fact-note">Niagara Falls Power Station, 1895.</div></div>
+        <div class="fact"><div class="fact-label">Method</div><div class="fact-value">Assembly line</div><div class="fact-note">Ford Highland Park, Oct 7, 1913.</div></div>
+        <div class="fact"><div class="fact-label">Scale</div><div class="fact-value">15 million</div><div class="fact-note">Model Ts built 1908&ndash;1927.</div></div>
+      </div>
+    </div>
+
+    <div class="era" data-dot="yellow">
+      <div class="era-head">
+        <span class="era-num">3.0</span>
+        <span class="era-title">Digital automation</span>
+        <span class="era-years">~1960 &ndash; 2000</span>
+      </div>
+      <p class="era-subtitle">Semiconductors, PLCs, and the programmable factory</p>
+      <p>Industry 3.0 is the revolution of the microchip. Jack Kilby's integrated circuit (1958), Dick Morley's Modicon 084 &mdash; the world's first programmable logic controller (1968) &mdash; and the rise of industrial robots (GM's Unimate, 1961) replaced hard-wired relay logic with software you could re-flash overnight. CAD/CAM closed the loop from drawing to milling machine. By 2000, a modern automotive plant ran on thousands of PLCs, SCADA dashboards, and six-axis robots, all coordinated by ethernet and MES software.</p>
+      <div class="grid">
+        <div class="fact"><div class="fact-label">Power</div><div class="fact-value">Electronics</div><div class="fact-note">Moore's Law doubled transistor density every ~2 years.</div></div>
+        <div class="fact"><div class="fact-label">Controller</div><div class="fact-value">PLC + SCADA</div><div class="fact-note">Modicon 084, 1968 — the prototype of every factory floor today.</div></div>
+        <div class="fact"><div class="fact-label">Robots</div><div class="fact-value">Unimate</div><div class="fact-note">First industrial robot at GM Trenton, 1961.</div></div>
+      </div>
+    </div>
+
+    <div class="era" data-dot="green">
+      <div class="era-head">
+        <span class="era-num">4.0</span>
+        <span class="era-title">Cyber-physical systems</span>
+        <span class="era-years">2011 &ndash; present</span>
+      </div>
+      <p class="era-subtitle">Networked sensors, cloud, AI, and the self-observing factory</p>
+      <p>The term <em>Industrie 4.0</em> was introduced at the 2011 Hannover Fair by a German working group chaired by Henning Kagermann, Wolfgang Wahlster, and Wolf-Dieter Lukas, and was formalised in the 2013 report <em>Recommendations for implementing the strategic initiative Industrie 4.0</em>. The vision: merge the physical factory with its digital shadow so that every machine, part, and process is addressable, observable, and capable of negotiating its own role in production.</p>
+      <p>Where 3.0 gave us a factory you could program, 4.0 gives us a factory that <strong>reprograms itself</strong> — based on real-time sensor data, supply-chain signals, and machine-learning models trained on its own history.</p>
+      <blockquote>
+        "We are on the threshold of a new age where manufacturing systems become autonomous, self-organising, and aware of their environment."
+        <cite>— Henning Kagermann et al., <em>acatech / Industrie 4.0 Working Group</em>, 2013</cite>
+      </blockquote>
+    </div>
+
+  </div>
+
+  <div class="section-title">The nine pillars of Industry 4.0</div>
+  <p class="lead">Boston Consulting Group's 2015 taxonomy — still the most widely cited framing of what changed in the transition from 3.0 to 4.0.</p>
+  <div class="pillars">
+    <div class="pillar"><h4>1. Industrial IoT</h4><p>Cheap networked sensors turn every machine into a data source; every part becomes addressable.</p></div>
+    <div class="pillar"><h4>2. Big data &amp; analytics</h4><p>Pipelines ingest terabytes of telemetry per shift to drive quality, throughput, and predictive maintenance.</p></div>
+    <div class="pillar"><h4>3. Cloud computing</h4><p>Elastic compute for MES, simulation, and training ML models — no on-prem data-center required.</p></div>
+    <div class="pillar"><h4>4. Cybersecurity</h4><p>OT networks merge with IT; zero-trust, segmentation, and signed firmware become table stakes.</p></div>
+    <div class="pillar"><h4>5. Simulation / digital twins</h4><p>A live software replica of each machine, line, or plant runs in parallel, fed by real sensors.</p></div>
+    <div class="pillar"><h4>6. Additive manufacturing</h4><p>3D printing moves from prototype to production parts; supply chains become data, not logistics.</p></div>
+    <div class="pillar"><h4>7. Autonomous robots</h4><p>Collaborative cobots work alongside humans; AMRs move material without fixed paths.</p></div>
+    <div class="pillar"><h4>8. Augmented reality</h4><p>Operators see overlays of instructions, torque values, and fault diagnoses projected on the work piece.</p></div>
+    <div class="pillar"><h4>9. System integration</h4><p>Horizontal (supplier &harr; factory &harr; customer) and vertical (sensor &harr; ERP) data flows in one fabric.</p></div>
+  </div>
+
+  <div class="section-title">Key milestones</div>
+  <table>
+    <thead><tr><th>Year</th><th>Event</th></tr></thead>
+    <tbody>
+      <tr><td>2011</td><td>Term <em>Industrie 4.0</em> introduced at Hannover Messe by the German National Academy of Science and Engineering (acatech).</td></tr>
+      <tr><td>2013</td><td>acatech publishes <em>Recommendations for implementing the strategic initiative Industrie 4.0</em>.</td></tr>
+      <tr><td>2014</td><td>General Electric launches Predix — a cloud platform for industrial IoT.</td></tr>
+      <tr><td>2015</td><td>Boston Consulting Group publishes <em>The Nine Pillars of Industry 4.0</em>.</td></tr>
+      <tr><td>2016</td><td>Klaus Schwab's book <em>The Fourth Industrial Revolution</em> ships; WEF Davos adopts the term globally.</td></tr>
+      <tr><td>2018</td><td>ISO/IEC JTC 1 publishes the first reference architecture for digital twins (ISO 23247 begins drafting).</td></tr>
+      <tr><td>2020</td><td>COVID-19 accelerates remote operations, supply-chain visibility, and cloud-first manufacturing.</td></tr>
+      <tr><td>2021</td><td>European Commission introduces the <em>Industry 5.0</em> concept — human-centric, sustainable, resilient.</td></tr>
+      <tr><td>2023</td><td>Generative AI enters the factory stack: LLM-assisted MES queries, natural-language SCADA.</td></tr>
+      <tr><td>Today</td><td>5G-connected plants, edge AI inference on PLC-adjacent hardware, and open-source digital-twin frameworks (Eclipse Ditto, Azure DT).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Beyond 4.0 — Industry 5.0</div>
+  <p>In January 2021 the European Commission published <em>Industry 5.0 &mdash; Towards a sustainable, human-centric and resilient European industry</em>. Where 4.0 optimised for throughput and flexibility, 5.0 adds three explicit goals: <strong>human-centric</strong> (technology serves workers, not the other way around), <strong>sustainable</strong> (circular economy, net-zero production), and <strong>resilient</strong> (supply chains that survive pandemics, embargoes, and climate shocks).</p>
+  <p>Industry 5.0 doesn't replace 4.0 &mdash; it is a normative layer on top of it. The sensors, cloud, and AI of 4.0 are the substrate; the goals shift from "make more, faster" to "make it well, fairly, and forever."</p>
+
+  <div class="section-title">Further reading</div>
+  <ul style="margin-left: 1.5rem; line-height: 1.8;">
+    <li><a class="ref" href="https://www.acatech.de/publikation/recommendations-for-implementing-the-strategic-initiative-industrie-4-0-final-report-of-the-industrie-4-0-working-group/">Kagermann, H. et al. &mdash; <em>Recommendations for implementing the strategic initiative Industrie 4.0</em> (acatech, 2013)</a></li>
+    <li><a class="ref" href="https://www.weforum.org/publications/the-fourth-industrial-revolution-by-klaus-schwab/">Schwab, K. &mdash; <em>The Fourth Industrial Revolution</em> (WEF, 2016)</a></li>
+    <li><a class="ref" href="https://www.bcg.com/capabilities/manufacturing/industry-4.0">Boston Consulting Group &mdash; <em>The Nine Pillars of Industry 4.0</em></a></li>
+    <li><a class="ref" href="https://op.europa.eu/en/publication-detail/-/publication/468a892a-5097-11eb-b59f-01aa75ed71a1/">European Commission &mdash; <em>Industry 5.0: Towards a sustainable, human-centric and resilient European industry</em> (2021)</a></li>
+    <li><a class="ref" href="https://en.wikipedia.org/wiki/Fourth_Industrial_Revolution">Wikipedia &mdash; Fourth Industrial Revolution</a></li>
+  </ul>
+
+</div>
+
+<footer class="footer">
+  Served from the GitOps Landing Zone — k3d + ArgoCD + Gitea &middot; deployed via the app-of-apps pattern &middot; <a href="http://portal.local">Back to portal</a>
+</footer>
+
+<script>
+(function() {
+  var html = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  var icon = document.getElementById('themeIcon');
+  var label = document.getElementById('themeLabel');
+  var stored = localStorage.getItem('portal-theme');
+  if (stored) html.setAttribute('data-theme', stored);
+  function update() {
+    var dark = html.getAttribute('data-theme') !== 'light';
+    icon.textContent = dark ? '\u263E' : '\u2600';
+    label.textContent = dark ? 'Light' : 'Dark';
+  }
+  update();
+  btn.addEventListener('click', function() {
+    var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('portal-theme', next);
+    update();
+  });
+})();
+</script>
+</body>
+</html>
