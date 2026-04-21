@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.1] — 2026-04-21
+
+### Added
+- **User manual — Headscale section + Resume-after-stop section.** `http://portal.local/manual.html` now documents section **10. Headscale VPN (mobile demos)** (first-run setup, phone registration flow, subnet-router recipe to reach `172.20.0.0/24` from a phone, cellular/cross-network options, admin commands) and a new **11.1 Resume after stop** subsection pointing users at `./scripts/resume.sh` for the preferred restart flow. TOC updated; subsequent section numbers shifted by one.
+
+---
+
 ## [1.7.0] — 2026-04-21
 
 ### Added

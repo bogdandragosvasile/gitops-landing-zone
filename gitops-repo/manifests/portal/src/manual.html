@@ -321,25 +321,27 @@ h2::before, h3::before {
       <li><a href="#vaultwarden">7. Vaultwarden import</a></li>
       <li><a href="#sso">8. Single sign-on (Keycloak)</a></li>
       <li><a href="#addapp">9. Deploy your own application</a></li>
-      <li><a href="#lifecycle">10. Lifecycle</a>
+      <li><a href="#headscale">10. Headscale VPN (mobile demos)</a></li>
+      <li><a href="#lifecycle">11. Lifecycle</a>
         <ul>
+          <li><a href="#resume">Resume after stop</a></li>
           <li><a href="#restart">Restart</a></li>
           <li><a href="#teardown">Teardown</a></li>
           <li><a href="#backup">Backup &amp; restore</a></li>
         </ul>
       </li>
-      <li><a href="#observability">11. Observability</a></li>
-      <li><a href="#security">12. Security</a></li>
-      <li><a href="#agents">13. AI agent federation</a></li>
-      <li><a href="#platform-notes">14. Platform-specific notes</a>
+      <li><a href="#observability">12. Observability</a></li>
+      <li><a href="#security">13. Security</a></li>
+      <li><a href="#agents">14. AI agent federation</a></li>
+      <li><a href="#platform-notes">15. Platform-specific notes</a>
         <ul>
           <li><a href="#platform-mac">macOS / Colima</a></li>
           <li><a href="#platform-linux">Linux / WSL2</a></li>
           <li><a href="#platform-windows">Windows</a></li>
         </ul>
       </li>
-      <li><a href="#troubleshoot">15. Troubleshooting</a></li>
-      <li><a href="#extending">16. Extending further</a></li>
+      <li><a href="#troubleshoot">16. Troubleshooting</a></li>
+      <li><a href="#extending">17. Extending further</a></li>
     </ul>
   </nav>
 
@@ -575,8 +577,82 @@ rm /tmp/my-app.tar</code></pre></li>
     <div class="tip"><strong>Claude Code shortcut</strong>The <code>/docker-build-import</code> skill automates the tarball import loop.</div>
   </section>
 
+  <section id="headscale">
+    <h2>10. Headscale VPN (mobile demos)</h2>
+    <p class="lead">Free, self-hosted Tailscale control plane deployed as an ArgoCD Application (<code>platform/headscale</code>). Point the official Tailscale mobile apps at <a class="inline" href="http://headscale.local/health">http://headscale.local</a> to mesh your phone with the landing zone.</p>
+
+    <h3>Why Headscale</h3>
+    <ul>
+      <li><strong>100% free, no paid tier</strong> — BSD-3-licensed open-source implementation of the Tailscale coordination server. No Tailscale account required, no traffic routed through Tailscale's SaaS.</li>
+      <li><strong>Uses the official mobile apps</strong> — Tailscale iOS / Android from the stores; just point them at your self-hosted control URL.</li>
+      <li><strong>WireGuard under the hood</strong> — NAT traversal via an embedded DERP relay; Magic DNS for hostname resolution; subnet routing so the phone can reach <code>portal.local</code> etc.</li>
+    </ul>
+
+    <h3>First-run setup</h3>
+<pre><code># 1. Create a user
+kubectl -n headscale exec deploy/headscale -- headscale users create alice
+
+# 2. Generate a pre-auth key (reusable, 7-day expiry)
+kubectl -n headscale exec deploy/headscale -- headscale preauthkeys create \
+  --user alice --reusable --expiry 168h
+# → copy the printed key</code></pre>
+
+    <p>Or use the convenience wrappers in the <code>platform/headscale</code> repo:</p>
+<pre><code>bash scripts/create-user.sh alice
+bash scripts/create-preauth.sh alice --reusable --expiry 168h</code></pre>
+
+    <h3>Registering a phone</h3>
+    <ol>
+      <li>Install the <strong>Tailscale</strong> app (App Store / Play Store).</li>
+      <li>Configure the custom control server:
+        <ul>
+          <li><strong>iOS</strong>: Settings &rarr; Use alternate server &rarr; <code>http://headscale.local</code>.</li>
+          <li><strong>Android</strong>: Settings &rarr; Change server &rarr; <code>http://headscale.local</code>.</li>
+        </ul>
+      </li>
+      <li>Tap <strong>Sign in with auth key</strong> and paste the pre-auth key.</li>
+    </ol>
+    <p>The phone now has a <code>100.x.x.x</code> Tailscale IP and a <code>*.landingzone.local</code> Magic DNS name.</p>
+
+    <h3>Reaching the landing zone from the phone</h3>
+    <p>The phone can see other Tailscale nodes, but to reach <code>portal.local</code> / <code>gitea.local:3000</code> / etc. — which live on the cluster's <code>172.20.0.0/24</code> — you register the laptop as a Tailscale <strong>subnet router</strong>:</p>
+<pre><code># On the landing-zone host:
+brew install tailscale
+sudo tailscale up \
+  --login-server http://headscale.local \
+  --auth-key &lt;another-preauth-key&gt; \
+  --advertise-routes 172.20.0.0/24
+
+# On Headscale, approve the route:
+kubectl -n headscale exec deploy/headscale -- \
+  headscale routes list
+kubectl -n headscale exec deploy/headscale -- \
+  headscale routes enable --route &lt;id-from-list&gt;</code></pre>
+
+    <h3>Phone on cellular / different network</h3>
+    <p>The landing zone's <code>headscale.local</code> is only reachable on the same LAN as the laptop. For demos where the phone is on 4G / 5G or a different WiFi, either:</p>
+    <ol>
+      <li><strong>Cloudflare Tunnel</strong> (recommended, still free): expose Headscale at a public HTTPS URL via <code>cloudflared</code>; update <code>server_url</code> in the ConfigMap accordingly. No paid Cloudflare tier needed for dev.</li>
+      <li>Move Headscale to a cheap VPS and keep this instance as dev-only.</li>
+    </ol>
+
+    <h3>Admin commands</h3>
+<pre><code>kubectl -n headscale exec deploy/headscale -- headscale --help
+
+# Common:
+kubectl -n headscale exec deploy/headscale -- headscale users list
+kubectl -n headscale exec deploy/headscale -- headscale nodes list
+kubectl -n headscale exec deploy/headscale -- headscale routes list</code></pre>
+  </section>
+
   <section id="lifecycle">
-    <h2>10. Lifecycle</h2>
+    <h2>11. Lifecycle</h2>
+
+    <h3 id="resume">Resume after stop</h3>
+    <p>Most reliable way to bring the stack back up after <code>colima stop</code> or <code>./teardown.sh</code> (volumes preserved):</p>
+<pre><code>./scripts/resume.sh</code></pre>
+    <p>This starts Colima + compose + k3d, re-applies the transient fixes (Colima daemon DNS, k3d node <code>/etc/resolv.conf</code>, CoreDNS NodeHosts for <code>gitea.local</code>), and clears any ghost Pending pods from the pre-stop state. Idempotent — safe to re-run.</p>
+    <p>If you prefer the manual sequence, see <em>Restart</em> below.</p>
 
     <h3 id="restart">Restart</h3>
     <p><strong>Stop</strong>:</p>
